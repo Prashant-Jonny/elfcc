@@ -1,3 +1,3 @@
 #!/bin/sh
 
-gcc -o elfcc elfcc.h elfcc.c
+gcc -o elfcc writer.c elfcc.c
