@@ -26,3 +26,5 @@ int getBits(FILE *elf);
 void decompile32(struct parameters *p);
 
 void decompile64(struct parameters *p);
+
+uint32_t decodeStringSection(void *section, uint64_t size, char **strings);

@@ -7,7 +7,9 @@ void writeEhdr64(FILE *out, Elf64_Ehdr *ehdr)
     writeEType(out, ehdr->e_type);
     writeMachine(out, ehdr->e_machine);
     writeVersion(out, ehdr->e_version);
-    fprintf(out, "Entry point: %llx\n\n", ehdr->e_entry);
+    fprintf(out, "Entry point: %llx\n", ehdr->e_entry);
+    writeShstrndx(out, ehdr->e_shstrndx);
+    fprintf(out, "\n");
 }
 
 void writeMagic(FILE *out, char *ident)
@@ -128,6 +130,26 @@ void writeVersion(FILE *out, uint32_t version)
 
 }
 
+void writeShstrndx(FILE *out, uint32_t index)
+{
+    fprintf(out, "Section header string index: ");
+    switch(index)
+    {
+        case SHN_UNDEF:
+            fprintf(out, "SHN_UNDEF\n");
+            break;
+        case SHN_ABS:
+            fprintf(out, "SHN_ABS\n");
+            break;
+        case SHN_COMMON:
+            fprintf(out, "SHN_COMMON\n");
+            break;
+        default:
+            fprintf(out, "%d\n", index);
+            break;
+    }
+}
+
 void writePhdr64(FILE *out, Elf64_Phdr *phdr, Elf64_Shdr *shdr, uint32_t pcount, uint32_t scount)
 {
     uint32_t i, j, start_section, end_section;
@@ -219,12 +241,19 @@ void writePFlags(FILE *out, uint32_t flags)
     fprintf(out, "\n");
 }
 
-void writeShdr64(FILE *out, Elf64_Shdr *shdr, uint32_t scount)
+void writeShdr64(FILE *out, Elf64_Shdr *shdr, uint32_t scount, char *string_section, uint64_t size)
 {
     uint32_t i;
     for(i = 0; i<scount; i++)
     {
         fprintf(out, "[SECTION HEADER %u]\n", i);
+        if(shdr[i].sh_name < size)
+            fprintf(out, "Name: %s\n", &(string_section[shdr[i].sh_name]));
+        else
+        {
+            printf("Invalid string index for section %u name.\n", i);
+            fprintf(out, "Name:\n");
+        }
         writeSType(out, shdr[i].sh_type);
         writeSFlags(out, shdr[i].sh_flags);
         fprintf(out, "Address: %llx\n", shdr[i].sh_addr);
@@ -232,6 +261,7 @@ void writeShdr64(FILE *out, Elf64_Shdr *shdr, uint32_t scount)
         fprintf(out, "Info: %x\n", shdr[i].sh_info);
         fprintf(out, "Align: %llx\n", shdr[i].sh_addralign);
         fprintf(out, "Entry size: %llx\n", shdr[i].sh_entsize);
+        
         fprintf(out, "\n");
     }
 }

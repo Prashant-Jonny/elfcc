@@ -157,6 +157,10 @@ void decompile64(struct parameters *p)
     Elf64_Ehdr *ehdr;
     Elf64_Phdr *phdr;
     Elf64_Shdr *shdr;
+    char buffer[1024];
+    FILE *section_out;
+    char **section_names;
+    uint32_t string_section_index;
     void **sections;
     unsigned int c, i, j;
     //ELF Header
@@ -198,9 +202,24 @@ void decompile64(struct parameters *p)
             printf("Elf parsing error: section %u at offset %llu  of size %llu could not be read.\n", i, shdr[i].sh_offset, shdr[i].sh_size);
             exit(304);
         }
+        snprintf(buffer, 1024, "%s.%u", p->out_file, i);
+        section_out = fopen(buffer, "w");
+        if(section_out == NULL)
+        {
+            printf("Couldn't create file %s to dump section %u.\n", buffer, i);
+            exit(305);
+        }
+        fwrite(sections[i], shdr[i].sh_size, 1, section_out);
+        fclose(section_out);
     }
+    //Get section string table index
+    //It's the worst part of the ELF format
+    if(ehdr->e_shstrndx<SHN_LORESERVE)
+        string_section_index = ehdr->e_shstrndx;
+    else
+        string_section_index = shdr[0].sh_link;
+
     writeEhdr64(p->elfs, ehdr);
     writePhdr64(p->elfs, phdr, shdr, ehdr->e_phnum, ehdr->e_shnum);
-    writeShdr64(p->elfs, shdr, ehdr->e_shnum);
+    writeShdr64(p->elfs, shdr, ehdr->e_shnum, (char*)sections[string_section_index], shdr[string_section_index].sh_size);
 }
-
