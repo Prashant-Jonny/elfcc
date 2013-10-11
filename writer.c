@@ -37,11 +37,11 @@ void writeEType(FILE *out, uint32_t type)
         case ET_DYN:
             fprintf(out, "ET_DYN\n");
             break;
-        case ET_CORE:
-            fprintf(out, "ET_CORE\n");
+        case ET_NUM:
+            fprintf(out, "ET_NUM\n");
             break;
         default:
-            fprintf(out, "%d", type);
+            fprintf(out, "%x", type);
     }
 }
 
@@ -108,7 +108,7 @@ void writeMachine(FILE *out, uint32_t machine)
             fprintf(out, "EM_VAX\n");
             break;
         default:
-            fprintf(out, "%d\n", machine);
+            fprintf(out, "%x\n", machine);
     }
 }
 
@@ -123,11 +123,12 @@ void writeVersion(FILE *out, uint32_t version)
         case EV_NONE:
             fprintf(out, "EV_NONE\n");
             break;
+        case EV_NUM:
+            fprintf(out, "EV_NUM\n");
+            break;
         default:
-            fprintf(out, "%d\n", version);
+            fprintf(out, "%x\n", version);
     }
-
-
 }
 
 void writeShstrndx(FILE *out, uint32_t index)
@@ -144,8 +145,11 @@ void writeShstrndx(FILE *out, uint32_t index)
         case SHN_COMMON:
             fprintf(out, "SHN_COMMON\n");
             break;
+        case SHN_XINDEX:
+            fprintf(out, "SHN_XINDEX\n");
+            break;
         default:
-            fprintf(out, "%d\n", index);
+            fprintf(out, "%x\n", index);
             break;
     }
 }
@@ -224,8 +228,20 @@ void writePType(FILE *out, uint32_t type)
         case PT_GNU_STACK:
             fprintf(out, "PT_GNU_STACK\n");
             break;
-        default:
-            fprintf(out, "%d\n", type);
+        case PT_TLS:
+            fprintf(out, "PT_TLS\n");
+            break;
+        case PT_NUM:
+            fprintf(out, "PT_NUM\n");
+            break;
+        case PT_GNU_EH_FRAME:
+            fprintf(out, "PT_GNU_EH_FRAME\n");
+            break;
+       case PT_GNU_RELRO:
+            fprintf(out, "PT_GNU_RELRO\n");
+            break;
+         default:
+            fprintf(out, "%x\n", type);
     }
 }
 
@@ -307,17 +323,38 @@ void writeSType(FILE *out, uint32_t type)
         case SHT_DYNSYM:
             fprintf(out, "SHT_DYNSYM\n");
             break;
-        case SHT_LOPROC:
-            fprintf(out, "SHT_LOPROC\n");
+        case SHT_INIT_ARRAY:
+            fprintf(out, "SHT_INIT_ARRAY\n");
             break;
-        case SHT_HIPROC:
-            fprintf(out, "SHT_HIPROC\n");
+        case SHT_FINI_ARRAY:
+            fprintf(out, "SHT_FINI_ARRAY\n");
             break;
-        case SHT_LOUSER:
-            fprintf(out, "SHT_LOUSER\n");
+        case SHT_PREINIT_ARRAY:
+            fprintf(out, "SHT_PREINIT_ARRAY\n");
             break;
-        case SHT_HIUSER:
-            fprintf(out, "SHT_HIUSER\n");
+        case SHT_GROUP:
+            fprintf(out, "SHT_GROUP\n");
+            break;
+        case SHT_SYMTAB_SHNDX:
+            fprintf(out, "SHT_SYMTAB_SHNDX\n");
+            break;
+        case SHT_GNU_ATTRIBUTES:
+            fprintf(out, "SHT_GNU_ATTRIBUTES\n");
+            break;
+        case SHT_GNU_HASH:
+            fprintf(out, "SHT_GNU_HASH\n");
+            break;
+        case SHT_GNU_LIBLIST:
+            fprintf(out, "SHT_GNU_LIBLIST\n");
+            break;
+        case SHT_GNU_verdef:
+            fprintf(out, "SHT_GNU_verdef\n");
+            break;
+        case SHT_GNU_verneed:
+            fprintf(out, "SHT_GNU_verneed\n");
+            break;
+        case SHT_GNU_versym:
+            fprintf(out, "SHT_GNU_versym\n");
             break;
         default:
             fprintf(out, "%x\n", type);
