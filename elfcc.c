@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     if(param.action != 4 && param.out_file == NULL)
     {
         param.action = 0;
-        printf("Please specify an input file.\n");
+        printf("Please specify an output file.\n");
     }
     
     switch(param.action)
@@ -83,17 +83,18 @@ void compile(struct parameters *param)
 
 void decompile(struct parameters *p)
 {
-    char *path_prefix;
+    char *elfs_path;
     int bits;
-
-    path_prefix = getPathPrefix(p->out_file);
+    elfs_path = (char*) malloc(strlen(p->out_file)+6);
+    strcpy(elfs_path, p->out_file);
+    strcat(elfs_path, ".elfs");
     p->elf = fopen(p->in_file, "r");
     if(p->elf == NULL)
     {
         printf("Can't open elf input file.\n");
         exit(3);
     }
-    p->elfs = fopen(p->out_file, "w");
+    p->elfs = fopen(elfs_path, "w");
     if(p->elfs == NULL)
     {
         printf("Can't create output elfs file.\n");
@@ -105,21 +106,9 @@ void decompile(struct parameters *p)
     else if(bits == 64)
         decompile64(p);
 
-    free(path_prefix);
+    free(elfs_path);
     fclose(p->elf);
     fclose(p->elfs);
-}
-
-char* getPathPrefix(char* file_path)
-{
-    char *end, *path_prefix;
-    end = strrchr(file_path,  '.');
-    if(end == NULL)
-        end = strchr(file_path, '\0');
-    path_prefix = (char*) malloc(end-file_path+1);
-    strncpy(path_prefix, file_path, end-file_path);
-    path_prefix[end-file_path] = '\0';
-    return path_prefix;
 }
 
 int getBits(FILE *elf)
