@@ -13,6 +13,6 @@ void writeMachine(FILE *out, int machine);
 
 void writeVersion(FILE *out, int version);
 
-void writePhdr64(FILE *out, Elf64_Phdr *phdr, int count);
+void writePhdr64(FILE *out, Elf64_Phdr *phdr, Elf64_Shdr *shdr, int pcount, int scount);
 
 void writePType(FILE *out, int type);

@@ -211,6 +211,6 @@ void decompile64(struct parameters *p)
         }
     }
     writeEhdr64(p->elfs, ehdr);
-    writePhdr64(p->elfs, phdr, ehdr->e_phnum);
+    writePhdr64(p->elfs, phdr, shdr, ehdr->e_phnum, ehdr->e_shnum);
 }
 

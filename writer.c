@@ -128,13 +128,48 @@ void writeVersion(FILE *out, int version)
 
 }
 
-void writePhdr64(FILE *out, Elf64_Phdr *phdr, int count)
+void writePhdr64(FILE *out, Elf64_Phdr *phdr, Elf64_Shdr *shdr, int pcount, int scount)
 {
-    int i;
-    fprintf(out, "[PROGRAM HEADERS]\n");
-    for(i = 0; i<count; i++)
+    uint32_t i, j, start_section, end_section;
+    uint64_t start_section_offset, end_section_offset, end_offset;
+    for(i = 0; i<pcount; i++)
     {
+        
+        fprintf(out, "[PROGRAM HEADER %u]\n", i);
         writePType(out, phdr[i].p_type);
+        start_section_offset = -1;
+        for(j = 0; j<scount; j++)
+        {
+            if(shdr[j].sh_offset <= phdr[i].p_offset && phdr[i].p_offset - shdr[j].sh_offset < start_section_offset)
+            {
+                start_section = j;
+                start_section_offset = phdr[i].p_offset - shdr[j].sh_offset;
+            }
+        }
+        fprintf(out, "Start: Section%u+%llx\n", start_section, start_section_offset);
+        end_offset = phdr[i].p_offset+phdr[i].p_filesz;
+        end_section_offset = -1;
+        for(j = 0; j<scount; j++)
+        {
+            if(shdr[j].sh_offset <= end_offset && end_offset - shdr[j].sh_offset < end_section_offset)
+            {
+                end_section = j;
+                end_section_offset = end_offset - shdr[j].sh_offset;
+            }
+        }
+        fprintf(out, "End: Section%u+%llx\n", end_section, end_section_offset);
+        fprintf(out, "Virtual address: %llx\n", phdr[i].p_vaddr);
+        fprintf(out, "Physical address: %llx\n", phdr[i].p_paddr);
+        fprintf(out, "Align: %llx\n", phdr[i].p_align);
+        fprintf(out, "Memory size delta: %+llx\n", phdr[i].p_memsz - phdr[i].p_filesz);
+        fprintf(out, "Flags: ");
+        if(phdr[i].p_flags & PF_R)
+            fprintf(out, "R");
+        if(phdr[i].p_flags & PF_W)
+            fprintf(out, "W");
+        if(phdr[i].p_flags & PF_X)
+            fprintf(out, "X");
+        fprintf(out, "\n\n");
     }
 }
 
