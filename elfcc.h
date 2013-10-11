@@ -21,8 +21,6 @@ void compile(struct parameters *param);
 
 void decompile(struct parameters *param);
 
-char* getPathPrefix(char *file_path);
-
 int getBits(FILE *elf);
 
 void decompile32(struct parameters *p);
