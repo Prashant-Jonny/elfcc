@@ -118,26 +118,15 @@ int getBits(FILE *elf)
     fread(&arch, 2, 1, elf);
     switch(arch)
     {
-        case EM_M32:
-        case EM_SPARC:
         case EM_386:
-        case EM_68K:
-        case EM_88K:
-        case EM_860:
-        case EM_MIPS:
-        case EM_PARISC:
-        case EM_SPARC32PLUS:
         case EM_PPC:
-        case EM_S390:
         case EM_ARM:
-        case EM_SH:
-        case EM_VAX:
             arch = 32;
             break;
         case EM_PPC64:
-        case EM_SPARCV9:
         case EM_IA_64:
         case EM_X86_64:
+        case EM_AARCH64:
             arch = 64;
             break;
         default:
@@ -148,7 +137,74 @@ int getBits(FILE *elf)
 
 void decompile32(struct parameters *p)
 {
-    //ADAPT FROM DECOMPILE64
+    Elf32_Ehdr *ehdr;
+    Elf32_Phdr *phdr;
+    Elf32_Shdr *shdr;
+    char buffer[1024];
+    FILE *section_out;
+    char **section_names;
+    uint32_t string_section_index;
+    void **sections;
+    unsigned int c, i, j;
+    //ELF Header
+    ehdr = (Elf32_Ehdr*) malloc(sizeof(Elf32_Ehdr));
+    fseek(p->elf, 0, SEEK_SET);
+    if(fread((void*)ehdr, sizeof(Elf32_Ehdr), 1, p->elf) == 0)
+    {
+        printf("No ELF32 header found.\n");
+        exit(301);
+    }
+    //ELF Program Header
+    phdr = (Elf32_Phdr*) calloc(ehdr->e_phnum, sizeof(Elf32_Phdr));
+    fseek(p->elf, ehdr->e_phoff, SEEK_SET);
+    c = fread((void*)phdr, sizeof(Elf32_Phdr), ehdr->e_phnum, p->elf);
+    printf("%d program headers read.\n", c);
+    if(c != ehdr->e_phnum)
+    {
+        printf("ELF32 program header %u is missing.\n", c);
+        exit(302);
+    }
+    //ELF Section Header
+    shdr = (Elf32_Shdr*) calloc(ehdr->e_shnum, sizeof(Elf32_Shdr));
+    fseek(p->elf, ehdr->e_shoff, SEEK_SET);
+    c = fread((void*)shdr, sizeof(Elf32_Shdr), ehdr->e_shnum, p->elf);
+    printf("%d section headers read.\n", c);
+    if(c != ehdr->e_shnum)
+    {
+        printf("ELF32 section header %u is missing.\n", c);
+        exit(303);
+    }
+    //Sections
+    sections = (void**) calloc(ehdr->e_shnum, sizeof(void*));
+    for(i = 0; i<ehdr->e_shnum; i++)
+    {
+        sections[i] = (void*) malloc(shdr[i].sh_size);
+        fseek(p->elf, shdr[i].sh_offset, SEEK_SET);
+        if(shdr[i].sh_size != 0 && fread((void*) sections[i], shdr[i].sh_size, 1, p->elf) == 0)
+        {
+            printf("Elf parsing error: section %u at offset %llu  of size %llu could not be read.\n", i, shdr[i].sh_offset, shdr[i].sh_size);
+            exit(304);
+        }
+        snprintf(buffer, 1024, "%s.%u", p->out_file, i);
+        section_out = fopen(buffer, "w");
+        if(section_out == NULL)
+        {
+            printf("Couldn't create file %s to dump section %u.\n", buffer, i);
+            exit(305);
+        }
+        fwrite(sections[i], shdr[i].sh_size, 1, section_out);
+        fclose(section_out);
+    }
+    //Get section string table index
+    //It's the worst part of the ELF format
+    if(ehdr->e_shstrndx<SHN_LORESERVE)
+        string_section_index = ehdr->e_shstrndx;
+    else
+        string_section_index = shdr[0].sh_link;
+
+    writeEhdr32(p->elfs, ehdr);
+    writePhdr32(p->elfs, phdr, shdr, ehdr->e_phnum, ehdr->e_shnum);
+    writeShdr32(p->elfs, shdr, ehdr->e_shnum, (char*)sections[string_section_index], shdr[string_section_index].sh_size);
 }
 
     

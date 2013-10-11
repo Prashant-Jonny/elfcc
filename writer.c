@@ -12,6 +12,18 @@ void writeEhdr64(FILE *out, Elf64_Ehdr *ehdr)
     fprintf(out, "\n");
 }
 
+void writeEhdr32(FILE *out, Elf32_Ehdr *ehdr)
+{
+    fprintf(out, "[ELF HEADER]\n");
+    writeMagic(out, ehdr->e_ident);
+    writeEType(out, ehdr->e_type);
+    writeMachine(out, ehdr->e_machine);
+    writeVersion(out, ehdr->e_version);
+    fprintf(out, "Entry point: %x\n", ehdr->e_entry);
+    writeShstrndx(out, ehdr->e_shstrndx);
+    fprintf(out, "\n");
+}
+
 void writeMagic(FILE *out, char *ident)
 {
     int i;
@@ -53,32 +65,8 @@ void writeMachine(FILE *out, uint32_t machine)
         case EM_NONE:
             fprintf(out, "EM_NONE\n");
             break;
-        case EM_M32:
-            fprintf(out, "EM_M32\n");
-            break;
-        case EM_SPARC:
-            fprintf(out, "EM_SPARC\n");
-            break;
         case EM_386:
             fprintf(out, "EM_386\n");
-            break;
-        case EM_68K:
-            fprintf(out, "EM_68K\n");
-            break;
-        case EM_88K:
-            fprintf(out, "EM_88K\n");
-            break;
-        case EM_860:
-            fprintf(out, "EM_860\n");
-            break;
-        case EM_MIPS:
-            fprintf(out, "EM_MIPS\n");
-            break;
-        case EM_PARISC:
-            fprintf(out, "EM_PARISC\n");
-            break;
-        case EM_SPARC32PLUS:
-            fprintf(out, "EM_SPARC32PLUS\n");
             break;
         case EM_PPC:
             fprintf(out, "EM_PPC\n");
@@ -86,17 +74,8 @@ void writeMachine(FILE *out, uint32_t machine)
         case EM_PPC64:
             fprintf(out, "EM_PPC64\n");
             break;
-        case EM_S390:
-            fprintf(out, "EM_S390\n");
-            break;
         case EM_ARM:
             fprintf(out, "EM_ARM\n");
-            break;
-        case EM_SH:
-            fprintf(out, "EM_SH\n");
-            break;
-        case EM_SPARCV9:
-            fprintf(out, "EM_SPARCV9\n");
             break;
         case EM_IA_64:
             fprintf(out, "EM_IA_64\n");
@@ -104,8 +83,8 @@ void writeMachine(FILE *out, uint32_t machine)
         case EM_X86_64:
             fprintf(out, "EM_X86_64\n");
             break;
-        case EM_VAX:
-            fprintf(out, "EM_VAX\n");
+        case EM_AARCH64:
+            fprintf(out, "EM_AARCH64\n");
             break;
         default:
             fprintf(out, "%x\n", machine);
@@ -160,8 +139,7 @@ void writePhdr64(FILE *out, Elf64_Phdr *phdr, Elf64_Shdr *shdr, uint32_t pcount,
     uint64_t start_section_offset, end_section_offset, end_offset;
     for(i = 0; i<pcount; i++)
     {
-        
-        fprintf(out, "[PROGRAM HEADER %u]\n", i);
+        fprintf(out, "[PROGRAM HEADER %x]\n", i);
         writePType(out, phdr[i].p_type);
         start_section_offset = -1;
         for(j = 0; j<scount; j++)
@@ -172,7 +150,7 @@ void writePhdr64(FILE *out, Elf64_Phdr *phdr, Elf64_Shdr *shdr, uint32_t pcount,
                 start_section_offset = phdr[i].p_offset - shdr[j].sh_offset;
             }
         }
-        fprintf(out, "Start: Section%u+%llx\n", start_section, start_section_offset);
+        fprintf(out, "Start: Section%x+%llx\n", start_section, start_section_offset);
         end_offset = phdr[i].p_offset+phdr[i].p_filesz;
         end_section_offset = -1;
         for(j = 0; j<scount; j++)
@@ -183,11 +161,49 @@ void writePhdr64(FILE *out, Elf64_Phdr *phdr, Elf64_Shdr *shdr, uint32_t pcount,
                 end_section_offset = end_offset - shdr[j].sh_offset;
             }
         }
-        fprintf(out, "End: Section%u+%llx\n", end_section, end_section_offset);
+        fprintf(out, "End: Section%x+%llx\n", end_section, end_section_offset);
         fprintf(out, "Virtual address: %llx\n", phdr[i].p_vaddr);
         fprintf(out, "Physical address: %llx\n", phdr[i].p_paddr);
         fprintf(out, "Align: %llx\n", phdr[i].p_align);
         fprintf(out, "Memory size delta: %+llx\n", phdr[i].p_memsz - phdr[i].p_filesz);
+        writePFlags(out, phdr[i].p_flags);
+        fprintf(out, "\n");
+    }
+}
+
+void writePhdr32(FILE *out, Elf32_Phdr *phdr, Elf32_Shdr *shdr, uint32_t pcount, uint32_t scount)
+{
+    uint32_t i, j, start_section, end_section;
+    uint32_t start_section_offset, end_section_offset, end_offset;
+    for(i = 0; i<pcount; i++)
+    {
+        fprintf(out, "[PROGRAM HEADER %x]\n", i);
+        writePType(out, phdr[i].p_type);
+        start_section_offset = -1;
+        for(j = 0; j<scount; j++)
+        {
+            if(shdr[j].sh_offset <= phdr[i].p_offset && phdr[i].p_offset - shdr[j].sh_offset < start_section_offset)
+            {
+                start_section = j;
+                start_section_offset = phdr[i].p_offset - shdr[j].sh_offset;
+            }
+        }
+        fprintf(out, "Start: Section%x+%x\n", start_section, start_section_offset);
+        end_offset = phdr[i].p_offset+phdr[i].p_filesz;
+        end_section_offset = -1;
+        for(j = 0; j<scount; j++)
+        {
+            if(shdr[j].sh_offset <= end_offset && end_offset - shdr[j].sh_offset < end_section_offset)
+            {
+                end_section = j;
+                end_section_offset = end_offset - shdr[j].sh_offset;
+            }
+        }
+        fprintf(out, "End: Section%x+%x\n", end_section, end_section_offset);
+        fprintf(out, "Virtual address: %x\n", phdr[i].p_vaddr);
+        fprintf(out, "Physical address: %x\n", phdr[i].p_paddr);
+        fprintf(out, "Align: %x\n", phdr[i].p_align);
+        fprintf(out, "Memory size delta: %+x\n", phdr[i].p_memsz - phdr[i].p_filesz);
         writePFlags(out, phdr[i].p_flags);
         fprintf(out, "\n");
     }
@@ -262,22 +278,45 @@ void writeShdr64(FILE *out, Elf64_Shdr *shdr, uint32_t scount, char *string_sect
     uint32_t i;
     for(i = 0; i<scount; i++)
     {
-        fprintf(out, "[SECTION HEADER %u]\n", i);
+        fprintf(out, "[SECTION HEADER %x]\n", i);
         if(shdr[i].sh_name < size)
             fprintf(out, "Name: %s\n", &(string_section[shdr[i].sh_name]));
         else
         {
-            printf("Invalid string index for section %u name.\n", i);
+            printf("Invalid string index for section %x name.\n", i);
             fprintf(out, "Name:\n");
         }
         writeSType(out, shdr[i].sh_type);
         writeSFlags(out, shdr[i].sh_flags);
         fprintf(out, "Address: %llx\n", shdr[i].sh_addr);
-        fprintf(out, "Link: %u\n", shdr[i].sh_link);
+        fprintf(out, "Link: %x\n", shdr[i].sh_link);
         fprintf(out, "Info: %x\n", shdr[i].sh_info);
         fprintf(out, "Align: %llx\n", shdr[i].sh_addralign);
         fprintf(out, "Entry size: %llx\n", shdr[i].sh_entsize);
-        
+        fprintf(out, "\n");
+    }
+}
+
+void writeShdr32(FILE *out, Elf32_Shdr *shdr, uint32_t scount, char *string_section, uint32_t size)
+{
+    uint32_t i;
+    for(i = 0; i<scount; i++)
+    {
+        fprintf(out, "[SECTION HEADER %x]\n", i);
+        if(shdr[i].sh_name < size)
+            fprintf(out, "Name: %s\n", &(string_section[shdr[i].sh_name]));
+        else
+        {
+            printf("Invalid string index for section %x name.\n", i);
+            fprintf(out, "Name:\n");
+        }
+        writeSType(out, shdr[i].sh_type);
+        writeSFlags(out, shdr[i].sh_flags);
+        fprintf(out, "Address: %x\n", shdr[i].sh_addr);
+        fprintf(out, "Link: %x\n", shdr[i].sh_link);
+        fprintf(out, "Info: %x\n", shdr[i].sh_info);
+        fprintf(out, "Align: %x\n", shdr[i].sh_addralign);
+        fprintf(out, "Entry size: %x\n", shdr[i].sh_entsize);
         fprintf(out, "\n");
     }
 }
@@ -374,4 +413,3 @@ void writeSFlags(FILE *out, uint32_t flags)
         fprintf(out, "M");
     fprintf(out, "\n");
 }
-
