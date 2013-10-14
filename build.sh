@@ -1,3 +1,3 @@
 #!/bin/sh
 
-gcc -o elfcc writer.c elfcc.c
+gcc -ggdb -o elfcc writer.c reader.c elfcc.c

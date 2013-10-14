@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <elf.h>
+#include "writer.h"
+#include "reader.h"
 
 struct parameters 
 {
@@ -27,4 +29,4 @@ void decompile32(struct parameters *p);
 
 void decompile64(struct parameters *p);
 
-uint32_t decodeStringSection(void *section, uint64_t size, char **strings);
+void compile32(struct parameters *p);

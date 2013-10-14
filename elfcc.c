@@ -1,5 +1,4 @@
 #include "elfcc.h"
-#include "writer.h"
 
 int main(int argc, char** argv)
 {
@@ -72,13 +71,30 @@ void usage()
 {
     printf("elfcc -d file -o output_file: decompile an elf\n");
     printf("elfcc -c file -o output_file: compile into an elf\n");
-    printf("elfcc -p file -o output_file: patch an elf\n");
 }
 
 
-void compile(struct parameters *param)
+void compile(struct parameters *p)
 {
-    printf("Compilation not yet implemented.\n");
+    char buffer[1024];
+    char *elfs_base_path;
+    struct elfs *elfs;
+    elfs_base_path = (char*) malloc(strlen(p->in_file)+1);
+    strcpy(elfs_base_path, p->in_file);
+    *strrchr(elfs_base_path, '.') = '\0';
+    p->elfs = fopen(p->in_file, "r");
+    if(p->elfs == NULL)
+    {
+        printf("Can't open elfs input file.\n");
+        exit(101);
+    }
+    p->elf = fopen(p->out_file, "w");
+    if(p->elf == NULL)
+    {
+        printf("Can't create output elf file.\n");
+        exit(102);
+    }
+    readElfs(p->elfs, elfs);
 }
 
 void decompile(struct parameters *p)
@@ -92,13 +108,13 @@ void decompile(struct parameters *p)
     if(p->elf == NULL)
     {
         printf("Can't open elf input file.\n");
-        exit(3);
+        exit(101);
     }
     p->elfs = fopen(elfs_path, "w");
     if(p->elfs == NULL)
     {
         printf("Can't create output elfs file.\n");
-        exit(4);
+        exit(102);
     }
     bits = getBits(p->elf);
     if(bits == 32)
