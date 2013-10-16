@@ -77,8 +77,9 @@ void usage()
 void compile(struct parameters *p)
 {
     char buffer[1024];
-    char *elfs_base_path;
+    char *elfs_base_path, *machine;
     struct elfs *elfs;
+    elfs = (struct elfs*)malloc(sizeof(struct elfs));
     elfs_base_path = (char*) malloc(strlen(p->in_file)+1);
     strcpy(elfs_base_path, p->in_file);
     *strrchr(elfs_base_path, '.') = '\0';
@@ -95,6 +96,34 @@ void compile(struct parameters *p)
         exit(102);
     }
     readElfs(p->elfs, elfs);
+    machine = findKeyValue(elfs->eh, "Machine");
+    if(machine == NULL)
+    {
+        printf("Machine is not defined in the ELF HEADER section.\n");
+        exit(501);
+    }
+    if(strcmp(machine, "EM_386")==0 || strcmp(machine, "EM_PPC")==0 || strcmp(machine, "EM_ARM")==0)
+        compile32(p->elf, elfs);
+    else if(strcmp(machine, "EM_PPC64")==0 || strcmp(machine, "EM_IA64")==0 || strcmp(machine, "EM_X86_64")==0 || strcmp(machine, "EM_AARCH64")==0)
+        compile64(p->elf, elfs);
+    else
+    {
+        printf("Machine type %s not understood.\n", machine);
+        exit(502);
+    }
+    fclose(p->elfs);
+    fclose(p->elf);
+    freeElfsStruct(elfs);
+}
+
+void compile32(FILE *out, struct elfs *e)
+{
+
+}
+
+void compile64(FILE *out, struct elfs *e)
+{
+
 }
 
 void decompile(struct parameters *p)

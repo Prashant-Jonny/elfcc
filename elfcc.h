@@ -19,14 +19,16 @@ void version();
 
 void usage();
 
-void compile(struct parameters *param);
+void compile(struct parameters *p);
 
-void decompile(struct parameters *param);
+void compile32(FILE *out, struct elfs *e);
+
+void compile64(FILE *out, struct elfs *e);
+
+void decompile(struct parameters *p);
 
 int getBits(FILE *elf);
 
 void decompile32(struct parameters *p);
 
 void decompile64(struct parameters *p);
-
-void compile32(struct parameters *p);

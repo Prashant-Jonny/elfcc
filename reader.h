@@ -33,4 +33,8 @@ void readElfs(FILE *in, struct elfs *elfs);
 
 int getNextLine(FILE *in, char *buffer, int size);
 
-void scanLine(char *line, char *key, char *value);
+void scanLine(char *line, char **key, char **value);
+
+char* findKeyValue(struct kv* kvs, char *key);
+
+void freeElfsStruct(struct elfs *e);
