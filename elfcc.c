@@ -2,7 +2,7 @@
 
 int main(int argc, char** argv)
 {
-    struct parameters param;
+    struct Parameters param;
     int i;
     memset((void*)&param, 0, sizeof(param));
     for(i = 1; i<argc; i++)
@@ -69,24 +69,33 @@ void version()
 
 void usage()
 {
+    version();
+    printf("\n");
     printf("elfcc -d file -o output_file: decompile an elf\n");
     printf("elfcc -c file -o output_file: compile into an elf\n");
 }
 
 
-void compile(struct parameters *p)
+void compile(struct Parameters *p)
 {
     char buffer[1024];
     char *elfs_base_path, *machine;
-    struct elfs *elfs;
-    elfs = (struct elfs*)malloc(sizeof(struct elfs));
+    uint32_t i;
+    FILE *section_file;
+    struct Ph *cur_ph;
+    struct Sh *cur_sh;
+    struct Elfs *elfs;
+    struct PreElf *pre_elf;
+
+    elfs = (struct Elfs*)malloc(sizeof(struct Elfs));
+    pre_elf = (struct PreElf*)malloc(sizeof(struct PreElf));
     elfs_base_path = (char*) malloc(strlen(p->in_file)+1);
     strcpy(elfs_base_path, p->in_file);
     *strrchr(elfs_base_path, '.') = '\0';
     p->elfs = fopen(p->in_file, "r");
     if(p->elfs == NULL)
     {
-        printf("Can't open elfs input file.\n");
+        printf("Can't open Elfs input file.\n");
         exit(101);
     }
     p->elf = fopen(p->out_file, "w");
@@ -97,36 +106,83 @@ void compile(struct parameters *p)
     }
     readElfs(p->elfs, elfs);
     machine = findKeyValue(elfs->eh, "Machine");
-    if(machine == NULL)
+    cur_ph = elfs->phs;
+    pre_elf->phdr_number = 0;
+    while(cur_ph->next != NULL)
     {
-        printf("Machine is not defined in the ELF HEADER section.\n");
-        exit(501);
+        cur_ph = cur_ph->next;
+        pre_elf->phdr_number++;
+    }
+    cur_sh = elfs->shs;
+    pre_elf->shdr_number = 0;
+    while(cur_sh->next != NULL)
+    {
+        cur_sh = cur_sh->next;
+        pre_elf->shdr_number++;
+    }
+    pre_elf->section_size = (uint64_t*)calloc(pre_elf->shdr_number, sizeof(uint64_t));
+    pre_elf->section_data = (void**)calloc(pre_elf->shdr_number, sizeof(void*));
+    pre_elf->section_total_size = 0;
+    for(i = 0; i< pre_elf->shdr_number; i++)
+    {
+        snprintf(buffer, 1024, "%s.%x", elfs_base_path, i);
+        section_file = fopen(buffer, "r");
+        fseek(section_file, 0, SEEK_END);
+        pre_elf->section_size[i] = ftell(section_file);
+        pre_elf->section_total_size += pre_elf->section_size[i];
+        pre_elf->section_data[i] = (void*)malloc(pre_elf->section_size[i]);
+        fseek(section_file, 0, SEEK_SET);
+        fread(pre_elf->section_data[i], pre_elf->section_size[i], 1, section_file);
+        fclose(section_file);
     }
     if(strcmp(machine, "EM_386")==0 || strcmp(machine, "EM_PPC")==0 || strcmp(machine, "EM_ARM")==0)
-        compile32(p->elf, elfs);
+        compile32(p->elf, elfs, pre_elf);
     else if(strcmp(machine, "EM_PPC64")==0 || strcmp(machine, "EM_IA64")==0 || strcmp(machine, "EM_X86_64")==0 || strcmp(machine, "EM_AARCH64")==0)
-        compile64(p->elf, elfs);
+        compile64(p->elf, elfs, pre_elf);
     else
     {
         printf("Machine type %s not understood.\n", machine);
-        exit(502);
+        exit(503);
     }
     fclose(p->elfs);
     fclose(p->elf);
     freeElfsStruct(elfs);
 }
 
-void compile32(FILE *out, struct elfs *e)
+void compile32(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
 {
-
+    
 }
 
-void compile64(FILE *out, struct elfs *e)
+void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
 {
+    Elf64_Ehdr *ehdr;
+    Elf64_Phdr *phdr;
+    Elf64_Shdr *shdr;
+    struct Ph *cur_ph;
+    struct Sh *cur_sh;
+    uint32_t i;
+    uint64_t index;
+    char *value;
+    ehdr = (Elf64_Ehdr*)malloc(sizeof(Elf64_Ehdr));
+    phdr = (Elf64_Phdr*)calloc(pre_elf->phdr_number, sizeof(Elf64_Phdr));
+    shdr = (Elf64_Shdr*)calloc(pre_elf->shdr_number, sizeof(Elf64_Shdr));
 
+    ehdr->e_shstrndx = strtol(findKeyValue(elfs->eh, "Section header string index"), NULL, 16);
+    cur_sh = elfs->shs;
+    for(i = 0; i<pre_elf->shdr_number; i++)
+    {
+        index = findString(pre_elf->section_data[ehdr->e_shstrndx], pre_elf->section_size[ehdr->e_shstrndx], findKeyValue(cur_sh->kvs, "Name"));
+        shdr[i].sh_name = (uint32_t)index;
+        shdr[i].sh_type = readSType(findKeyValue(cur_sh->kvs, "Type"));
+        shdr[i].sh_flags = readSFlags(findKeyValue(cur_sh->kvs, "Flags"));
+        shdr[i].sh_addr = strtol(findKeyValue(cur_sh->kvs, "Address"), NULL, 16);
+        // TO BE COMPUTED shdr[i].sh_offset = ;
+    }
 }
 
-void decompile(struct parameters *p)
+
+void decompile(struct Parameters *p)
 {
     char *elfs_path;
     int bits;
@@ -142,7 +198,7 @@ void decompile(struct parameters *p)
     p->elfs = fopen(elfs_path, "w");
     if(p->elfs == NULL)
     {
-        printf("Can't create output elfs file.\n");
+        printf("Can't create output Elfs file.\n");
         exit(102);
     }
     bits = getBits(p->elf);
@@ -180,7 +236,7 @@ int getBits(FILE *elf)
     return arch;
 }
 
-void decompile32(struct parameters *p)
+void decompile32(struct Parameters *p)
 {
     Elf32_Ehdr *ehdr;
     Elf32_Phdr *phdr;
@@ -230,7 +286,7 @@ void decompile32(struct parameters *p)
             printf("Elf parsing error: section %u at offset %llu  of size %llu could not be read.\n", i, shdr[i].sh_offset, shdr[i].sh_size);
             exit(304);
         }
-        snprintf(buffer, 1024, "%s.%u", p->out_file, i);
+        snprintf(buffer, 1024, "%s.%x", p->out_file, i);
         section_out = fopen(buffer, "w");
         if(section_out == NULL)
         {
@@ -253,7 +309,7 @@ void decompile32(struct parameters *p)
 }
 
     
-void decompile64(struct parameters *p)
+void decompile64(struct Parameters *p)
 {
     Elf64_Ehdr *ehdr;
     Elf64_Phdr *phdr;
@@ -303,7 +359,7 @@ void decompile64(struct parameters *p)
             printf("Elf parsing error: section %u at offset %llu  of size %llu could not be read.\n", i, shdr[i].sh_offset, shdr[i].sh_size);
             exit(304);
         }
-        snprintf(buffer, 1024, "%s.%u", p->out_file, i);
+        snprintf(buffer, 1024, "%s.%x", p->out_file, i);
         section_out = fopen(buffer, "w");
         if(section_out == NULL)
         {

@@ -3,38 +3,45 @@
 #include <string.h>
 #include <elf.h>
 
-struct kv
+struct Kv
 {
     char *key;
     char *value;
-    struct kv *next;
+    struct Kv *next;
 };
 
-struct ph
+struct Ph
 {
-    struct kv *kvs;
-    struct ph *next;
+    struct Kv *kvs;
+    struct Ph *next;
 };
 
-struct sh
+struct Sh
 {
-    struct kv *kvs;
-    struct sh *next;
+    struct Kv *kvs;
+    struct Sh *next;
 };
 
-struct elfs
+struct Elfs
 {
-    struct kv *eh;
-    struct ph *phs;
-    struct sh *shs;
+    struct Kv *eh;
+    struct Ph *phs;
+    struct Sh *shs;
 };
 
-void readElfs(FILE *in, struct elfs *elfs);
+void readElfs(FILE *in, struct Elfs *elfs);
 
 int getNextLine(FILE *in, char *buffer, int size);
 
 void scanLine(char *line, char **key, char **value);
 
-char* findKeyValue(struct kv* kvs, char *key);
+char* findKeyValue(struct Kv* kvs, char *key);
 
-void freeElfsStruct(struct elfs *e);
+uint64_t findString(void *section, uint64_t size, char *string);
+
+void freeElfsStruct(struct Elfs *e);
+
+uint32_t readSType(char *type);
+
+uint32_t readSFlags(char *flags);
+
