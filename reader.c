@@ -96,7 +96,7 @@ void scanLine(char *line, char **key, char **value)
     while(line[i] == ' ' || line[i] == '\t')
         i++;
     vs = i;
-    while(line[i] != '\n' && line[i] != '\0')
+    while(line[i] != '\n' && line[i] != ' ' && line[i] != '\0')
         i++;
     ve = i;
     *value = (char*) malloc(ve-vs+1);
@@ -150,6 +150,7 @@ uint64_t findString(void *section, uint64_t size, char *string)
     }
     return index;
 }
+
 void freeElfsStruct(struct Elfs *e)
 {
     struct Kv *cur_kv, *next_kv;
@@ -201,6 +202,51 @@ void freeElfsStruct(struct Elfs *e)
     }
     
     free(e);
+}
+
+uint32_t readPType(char *type)
+{
+    if(strcmp(type, "PT_NULL") == 0)
+        return PT_NULL;
+    else if(strcmp(type, "PT_LOAD") == 0)
+        return PT_LOAD;
+    else if(strcmp(type, "PT_DYNAMIC") == 0)
+        return PT_DYNAMIC;
+    else if(strcmp(type, "PT_INTERP") == 0)
+        return PT_INTERP;
+    else if(strcmp(type, "PT_NOTE") == 0)
+        return PT_NOTE;
+    else if(strcmp(type, "PT_SHLIB") == 0)
+        return PT_SHLIB;
+    else if(strcmp(type, "PT_PHDR") == 0)
+        return PT_PHDR;
+    else if(strcmp(type, "PT_GNU_STACK") == 0)
+        return PT_GNU_STACK;
+    else if(strcmp(type, "PT_TLS") == 0)
+        return PT_TLS;
+    else if(strcmp(type, "PT_NUM") == 0)
+        return PT_NUM;
+    else if(strcmp(type, "PT_GNU_EH_FRAME") == 0)
+        return PT_GNU_EH_FRAME;
+    else if(strcmp(type, "PT_GNU_RELRO") == 0)
+        return PT_GNU_RELRO;
+    else
+    {
+        printf("Program type %s not understood.\n", type);
+        exit(504);
+    }
+}
+
+uint32_t readPFlags(char *flags)
+{
+    uint32_t ret = 0;
+    if(strchr(flags, 'R') != NULL)
+        ret |= PF_R;
+    if(strchr(flags, 'W') != NULL)
+        ret |= PF_W;
+    if(strchr(flags, 'X') != NULL)
+        ret |= PF_X;
+    return ret;
 }
 
 uint32_t readSType(char *type)

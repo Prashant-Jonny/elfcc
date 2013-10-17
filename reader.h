@@ -41,6 +41,10 @@ uint64_t findString(void *section, uint64_t size, char *string);
 
 void freeElfsStruct(struct Elfs *e);
 
+uint32_t readPType(char *type);
+
+uint32_t readPFlags(char *flags);
+
 uint32_t readSType(char *type);
 
 uint32_t readSFlags(char *flags);

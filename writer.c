@@ -235,12 +235,6 @@ void writePType(FILE *out, uint32_t type)
         case PT_PHDR:
             fprintf(out, "PT_PHDR\n");
             break;
-        case PT_LOPROC:
-            fprintf(out, "PT_LOPROC\n");
-            break;
-        case PT_HIPROC:
-            fprintf(out, "PT_HIPROC\n");
-            break;
         case PT_GNU_STACK:
             fprintf(out, "PT_GNU_STACK\n");
             break;

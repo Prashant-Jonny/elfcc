@@ -162,22 +162,49 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
     struct Ph *cur_ph;
     struct Sh *cur_sh;
     uint32_t i;
-    uint64_t index;
     char *value;
+    uint64_t offset;
     ehdr = (Elf64_Ehdr*)malloc(sizeof(Elf64_Ehdr));
     phdr = (Elf64_Phdr*)calloc(pre_elf->phdr_number, sizeof(Elf64_Phdr));
     shdr = (Elf64_Shdr*)calloc(pre_elf->shdr_number, sizeof(Elf64_Shdr));
 
     ehdr->e_shstrndx = strtol(findKeyValue(elfs->eh, "Section header string index"), NULL, 16);
     cur_sh = elfs->shs;
+    offset = 64 + pre_elf->phdr_number*56;
     for(i = 0; i<pre_elf->shdr_number; i++)
     {
-        index = findString(pre_elf->section_data[ehdr->e_shstrndx], pre_elf->section_size[ehdr->e_shstrndx], findKeyValue(cur_sh->kvs, "Name"));
-        shdr[i].sh_name = (uint32_t)index;
+        shdr[i].sh_name = findString(pre_elf->section_data[ehdr->e_shstrndx], pre_elf->section_size[ehdr->e_shstrndx], findKeyValue(cur_sh->kvs, "Name"));
         shdr[i].sh_type = readSType(findKeyValue(cur_sh->kvs, "Type"));
         shdr[i].sh_flags = readSFlags(findKeyValue(cur_sh->kvs, "Flags"));
         shdr[i].sh_addr = strtol(findKeyValue(cur_sh->kvs, "Address"), NULL, 16);
-        // TO BE COMPUTED shdr[i].sh_offset = ;
+        shdr[i].sh_offset = offset;
+        shdr[i].sh_size = pre_elf->section_size[i];
+        offset += pre_elf->section_size[i];
+        shdr[i].sh_link = strtol(findKeyValue(cur_sh->kvs, "Link"), NULL, 16);
+        shdr[i].sh_info = strtol(findKeyValue(cur_sh->kvs, "Info"), NULL, 16); 
+        shdr[i].sh_addralign = strtol(findKeyValue(cur_sh->kvs, "Align"), NULL, 16); 
+        shdr[i].sh_entsize = strtol(findKeyValue(cur_sh->kvs, "Entry size"), NULL, 16); 
+        cur_sh = cur_sh->next;
+    }
+
+    cur_ph = elfs->phs;
+    for(i = 0; i<pre_elf->phdr_number; i++)
+    {
+        uint32_t si;
+        phdr[i].p_type = readPType(findKeyValue(cur_ph->kvs, "Type"));
+        phdr[i].p_flags = readPFlags(findKeyValue(cur_ph->kvs, "Flags"));
+        value = findKeyValue(cur_ph->kvs, "Start");
+        si = strtol(strstr(value, "Section")+7, NULL, 16);
+        offset = strtol(strchr(value, '+')+1, NULL, 16);
+        phdr[i].p_offset = shdr[si].sh_offset+offset;
+        value = findKeyValue(cur_ph->kvs, "End");
+        si = strtol(strstr(value, "Section")+7, NULL, 16);
+        offset = strtol(strchr(value, '+')+1, NULL, 16);
+        phdr[i].p_filesz = shdr[si].sh_offset+offset-phdr[i].p_offset;
+        phdr[i].p_vaddr = strtol(findKeyValue(cur_ph->kvs, "Virtual address"), NULL, 16);
+        phdr[i].p_paddr = strtol(findKeyValue(cur_ph->kvs, "Physical address"), NULL, 16);
+        phdr[i].p_align = strtol(findKeyValue(cur_ph->kvs, "Align"), NULL, 16);
+        phdr[i].p_memsz = phdr[i].p_filesz + strtol(findKeyValue(cur_ph->kvs, "Memory size delta"), NULL, 16);
     }
 }
 
