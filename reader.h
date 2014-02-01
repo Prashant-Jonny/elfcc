@@ -41,11 +41,19 @@ uint64_t findString(void *section, uint64_t size, char *string);
 
 void freeElfsStruct(struct Elfs *e);
 
-uint32_t readPType(char *type);
+void parseIdent(char *in, unsigned char *out);
 
-uint32_t readPFlags(char *flags);
+uint32_t parseEType(char *type);
 
-uint32_t readSType(char *type);
+uint32_t parseMachine(char *machine);
 
-uint32_t readSFlags(char *flags);
+uint32_t parseVersion(char *version);
+
+uint32_t parsePType(char *type);
+
+uint32_t parsePFlags(char *flags);
+
+uint32_t parseSType(char *type);
+
+uint32_t parseSFlags(char *flags);
 

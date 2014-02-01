@@ -170,42 +170,75 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
 
     ehdr->e_shstrndx = strtol(findKeyValue(elfs->eh, "Section header string index"), NULL, 16);
     cur_sh = elfs->shs;
-    offset = 64 + pre_elf->phdr_number*56;
+    offset = sizeof(Elf64_Ehdr) + pre_elf->phdr_number*sizeof(Elf64_Phdr);
     for(i = 0; i<pre_elf->shdr_number; i++)
     {
         shdr[i].sh_name = findString(pre_elf->section_data[ehdr->e_shstrndx], pre_elf->section_size[ehdr->e_shstrndx], findKeyValue(cur_sh->kvs, "Name"));
-        shdr[i].sh_type = readSType(findKeyValue(cur_sh->kvs, "Type"));
-        shdr[i].sh_flags = readSFlags(findKeyValue(cur_sh->kvs, "Flags"));
+        shdr[i].sh_type = parseSType(findKeyValue(cur_sh->kvs, "Type"));
+        shdr[i].sh_flags = parseSFlags(findKeyValue(cur_sh->kvs, "Flags"));
         shdr[i].sh_addr = strtol(findKeyValue(cur_sh->kvs, "Address"), NULL, 16);
-        shdr[i].sh_offset = offset;
         shdr[i].sh_size = pre_elf->section_size[i];
-        offset += pre_elf->section_size[i];
         shdr[i].sh_link = strtol(findKeyValue(cur_sh->kvs, "Link"), NULL, 16);
         shdr[i].sh_info = strtol(findKeyValue(cur_sh->kvs, "Info"), NULL, 16); 
         shdr[i].sh_addralign = strtol(findKeyValue(cur_sh->kvs, "Align"), NULL, 16); 
         shdr[i].sh_entsize = strtol(findKeyValue(cur_sh->kvs, "Entry size"), NULL, 16); 
+        if(shdr[i].sh_addralign != 0 && offset % shdr[i].sh_addralign != 0)
+        {
+            printf("%s : Align = %lld - Current offset = %lld - Shift = %lld\n", findKeyValue(cur_sh->kvs, "Name"), shdr[i].sh_addralign, offset, shdr[i].sh_addralign - (offset % shdr[i].sh_addralign));
+            offset += shdr[i].sh_addralign - (offset % shdr[i].sh_addralign);
+        }
+        shdr[i].sh_offset = offset;
+        offset += pre_elf->section_size[i];
         cur_sh = cur_sh->next;
     }
+
+    parseIdent(findKeyValue(elfs->eh, "Magic"), ehdr->e_ident);
+    ehdr->e_type = parseEType(findKeyValue(elfs->eh, "Type"));
+    ehdr->e_machine = parseMachine(findKeyValue(elfs->eh, "Machine"));
+    ehdr->e_version = parseVersion(findKeyValue(elfs->eh, "Version"));
+    ehdr->e_entry = strtol(findKeyValue(elfs->eh, "Entry point"), NULL, 16);
+    ehdr->e_phoff = sizeof(Elf64_Ehdr);
+    ehdr->e_shoff = offset;
+    ehdr->e_flags = 0;
+    ehdr->e_ehsize = sizeof(Elf64_Ehdr);
+    ehdr->e_phentsize = sizeof(Elf64_Phdr);
+    ehdr->e_phnum = pre_elf->phdr_number;
+    ehdr->e_shentsize = sizeof(Elf64_Shdr);
+    ehdr->e_shnum = pre_elf->shdr_number;
 
     cur_ph = elfs->phs;
     for(i = 0; i<pre_elf->phdr_number; i++)
     {
         uint32_t si;
-        phdr[i].p_type = readPType(findKeyValue(cur_ph->kvs, "Type"));
-        phdr[i].p_flags = readPFlags(findKeyValue(cur_ph->kvs, "Flags"));
+        phdr[i].p_type = parsePType(findKeyValue(cur_ph->kvs, "Type"));
+        phdr[i].p_flags = parsePFlags(findKeyValue(cur_ph->kvs, "Flags"));
         value = findKeyValue(cur_ph->kvs, "Start");
         si = strtol(strstr(value, "Section")+7, NULL, 16);
         offset = strtol(strchr(value, '+')+1, NULL, 16);
+        printf("%x %x\n", si, offset);
         phdr[i].p_offset = shdr[si].sh_offset+offset;
         value = findKeyValue(cur_ph->kvs, "End");
         si = strtol(strstr(value, "Section")+7, NULL, 16);
         offset = strtol(strchr(value, '+')+1, NULL, 16);
+        printf("%x %x\n", si, offset);
         phdr[i].p_filesz = shdr[si].sh_offset+offset-phdr[i].p_offset;
         phdr[i].p_vaddr = strtol(findKeyValue(cur_ph->kvs, "Virtual address"), NULL, 16);
         phdr[i].p_paddr = strtol(findKeyValue(cur_ph->kvs, "Physical address"), NULL, 16);
         phdr[i].p_align = strtol(findKeyValue(cur_ph->kvs, "Align"), NULL, 16);
         phdr[i].p_memsz = phdr[i].p_filesz + strtol(findKeyValue(cur_ph->kvs, "Memory size delta"), NULL, 16);
+        cur_ph = cur_ph->next;
     }
+
+    fwrite(ehdr, sizeof(Elf64_Ehdr), 1, out);
+    for(i = 0; i<pre_elf->phdr_number; i++)
+        fwrite(&(phdr[i]), sizeof(Elf64_Phdr), 1, out);
+    for(i = 0; i<pre_elf->shdr_number; i++)
+    {
+        fseek(out, shdr[i].sh_offset, SEEK_SET);
+        fwrite(pre_elf->section_data[i], pre_elf->section_size[i], 1, out);
+    }
+    for(i = 0; i<pre_elf->shdr_number; i++)
+        fwrite(&(shdr[i]), sizeof(Elf64_Shdr), 1, out);
 }
 
 
@@ -293,7 +326,7 @@ void decompile32(struct Parameters *p)
         exit(302);
     }
     //ELF Section Header
-    shdr = (Elf32_Shdr*) calloc(ehdr->e_shnum, sizeof(Elf32_Shdr));
+    shdr = (Elf32_Shdr*) calloc(ehdr->e_shnum + 1, sizeof(Elf32_Shdr));
     fseek(p->elf, ehdr->e_shoff, SEEK_SET);
     c = fread((void*)shdr, sizeof(Elf32_Shdr), ehdr->e_shnum, p->elf);
     printf("%d section headers read.\n", c);
@@ -304,13 +337,19 @@ void decompile32(struct Parameters *p)
     }
     //Sections
     sections = (void**) calloc(ehdr->e_shnum, sizeof(void*));
+    //Fill a guard section offset
+    fseek(p->elf, 0, SEEK_END);
+    shdr[ehdr->e_shnum].sh_offset = ftell(p->elf);
     for(i = 0; i<ehdr->e_shnum; i++)
     {
-        sections[i] = (void*) malloc(shdr[i].sh_size);
+        unsigned int size = shdr[i].sh_size;
+        if(size > (shdr[i+1].sh_offset - shdr[i].sh_offset))
+            size = shdr[i+1].sh_offset - shdr[i].sh_offset;
+        sections[i] = (void*) malloc(size);
         fseek(p->elf, shdr[i].sh_offset, SEEK_SET);
-        if(shdr[i].sh_size != 0 && fread((void*) sections[i], shdr[i].sh_size, 1, p->elf) == 0)
+        if(size != 0 && fread((void*) sections[i], size, 1, p->elf) == 0)
         {
-            printf("Elf parsing error: section %u at offset %llu  of size %llu could not be read.\n", i, shdr[i].sh_offset, shdr[i].sh_size);
+            printf("Elf parsing error: section %u at offset %llu  of size %llu could not be read.\n", i, shdr[i].sh_offset, size);
             exit(304);
         }
         snprintf(buffer, 1024, "%s.%x", p->out_file, i);
@@ -320,7 +359,7 @@ void decompile32(struct Parameters *p)
             printf("Couldn't create file %s to dump section %u.\n", buffer, i);
             exit(305);
         }
-        fwrite(sections[i], shdr[i].sh_size, 1, section_out);
+        fwrite(sections[i], size, 1, section_out);
         fclose(section_out);
     }
     //Get section string table index
@@ -366,7 +405,7 @@ void decompile64(struct Parameters *p)
         exit(302);
     }
     //ELF Section Header
-    shdr = (Elf64_Shdr*) calloc(ehdr->e_shnum, sizeof(Elf64_Shdr));
+    shdr = (Elf64_Shdr*) calloc(ehdr->e_shnum + 1, sizeof(Elf64_Shdr));
     fseek(p->elf, ehdr->e_shoff, SEEK_SET);
     c = fread((void*)shdr, sizeof(Elf64_Shdr), ehdr->e_shnum, p->elf);
     printf("%d section headers read.\n", c);
@@ -377,13 +416,19 @@ void decompile64(struct Parameters *p)
     }
     //Sections
     sections = (void**) calloc(ehdr->e_shnum, sizeof(void*));
+    //Fill a guard section offset
+    fseek(p->elf, 0, SEEK_END);
+    shdr[ehdr->e_shnum].sh_offset = ftell(p->elf);
     for(i = 0; i<ehdr->e_shnum; i++)
     {
-        sections[i] = (void*) malloc(shdr[i].sh_size);
+        unsigned long long size = shdr[i].sh_size;
+        if(size > (shdr[i+1].sh_offset - shdr[i].sh_offset))
+            size = shdr[i+1].sh_offset - shdr[i].sh_offset;
+        sections[i] = (void*) malloc(size);
         fseek(p->elf, shdr[i].sh_offset, SEEK_SET);
-        if(shdr[i].sh_size != 0 && fread((void*) sections[i], shdr[i].sh_size, 1, p->elf) == 0)
+        if(size != 0 && fread((void*) sections[i], size, 1, p->elf) == 0)
         {
-            printf("Elf parsing error: section %u at offset %llu  of size %llu could not be read.\n", i, shdr[i].sh_offset, shdr[i].sh_size);
+            printf("Elf parsing error: section %u at offset %llu  of size %llu could not be read.\n", i, shdr[i].sh_offset, size);
             exit(304);
         }
         snprintf(buffer, 1024, "%s.%x", p->out_file, i);
@@ -393,7 +438,7 @@ void decompile64(struct Parameters *p)
             printf("Couldn't create file %s to dump section %u.\n", buffer, i);
             exit(305);
         }
-        fwrite(sections[i], shdr[i].sh_size, 1, section_out);
+        fwrite(sections[i], size, 1, section_out);
         fclose(section_out);
     }
     //Get section string table index

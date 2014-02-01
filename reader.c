@@ -96,7 +96,7 @@ void scanLine(char *line, char **key, char **value)
     while(line[i] == ' ' || line[i] == '\t')
         i++;
     vs = i;
-    while(line[i] != '\n' && line[i] != ' ' && line[i] != '\0')
+    while(line[i] != '\n' && line[i] != '\0')
         i++;
     ve = i;
     *value = (char*) malloc(ve-vs+1);
@@ -204,31 +204,109 @@ void freeElfsStruct(struct Elfs *e)
     free(e);
 }
 
-uint32_t readPType(char *type)
+
+void parseIdent(char *in, unsigned char *out)
 {
-    if(strcmp(type, "PT_NULL") == 0)
+    int j = 0;
+    for(; *in != '\0' && j<EI_NIDENT; in++)
+    {
+        if(*in != ' ')
+        {
+            out[j] = strtol(in, &in, 16);
+            j++;
+        }
+    }
+    if(j != EI_NIDENT)
+    {
+        printf("Magic Number is missing %x bytes.\n", EI_NIDENT - j);
+        exit(505);
+    }
+}
+
+uint32_t parseEType(char *type)
+{
+    if(strstr(type, "ET_NONE") != NULL)
+        return ET_NONE;
+    else if(strstr(type, "ET_REL") != NULL)
+        return ET_REL;
+    else if(strstr(type, "ET_EXEC") != NULL)
+        return ET_EXEC;
+    else if(strstr(type, "ET_DYN") != NULL)
+        return ET_DYN;
+    else if(strstr(type, "ET_NUM") != NULL)
+        return ET_NUM;
+    else
+    {
+        printf("ELF type %s not understood.\n", type);
+        exit(506);
+    }
+}
+
+uint32_t parseMachine(char *machine)
+{
+    if(strstr(machine, "EM_NONE") != NULL)
+        return EM_NONE;
+    else if(strstr(machine, "EM_386") != NULL)
+        return EM_386;
+    else if(strstr(machine, "EM_PPC") != NULL)
+        return EM_PPC;
+    else if(strstr(machine, "EM_PPC64") != NULL)
+        return EM_PPC64;
+    else if(strstr(machine, "EM_ARM") != NULL)
+        return EM_ARM;
+    else if(strstr(machine, "EM_IA_64") != NULL)
+        return EM_IA_64;
+    else if(strstr(machine, "EM_X86_64") != NULL)
+        return EM_X86_64;
+    else if(strstr(machine, "EM_AARCH64") != NULL)
+        return EM_AARCH64;
+    else
+    {
+        printf("Machine type %s not understood.\n", machine);
+        exit(507);
+    }
+}
+
+uint32_t parseVersion(char *version)
+{
+    if(strstr(version, "EV_CURRENT") != NULL)
+        return EV_CURRENT;
+    else if(strstr(version, "EV_NONE") != NULL)
+        return EV_NONE;
+    else if(strstr(version, "EV_NUM") != NULL)
+        return EV_NUM;
+    else
+    {
+        printf("Version %s not understood.\n", version);
+        exit(508);
+    }
+}
+
+uint32_t parsePType(char *type)
+{
+    if(strstr(type, "PT_NULL") != NULL)
         return PT_NULL;
-    else if(strcmp(type, "PT_LOAD") == 0)
+    else if(strstr(type, "PT_LOAD") != NULL)
         return PT_LOAD;
-    else if(strcmp(type, "PT_DYNAMIC") == 0)
+    else if(strstr(type, "PT_DYNAMIC") != NULL)
         return PT_DYNAMIC;
-    else if(strcmp(type, "PT_INTERP") == 0)
+    else if(strstr(type, "PT_INTERP") != NULL)
         return PT_INTERP;
-    else if(strcmp(type, "PT_NOTE") == 0)
+    else if(strstr(type, "PT_NOTE") != NULL)
         return PT_NOTE;
-    else if(strcmp(type, "PT_SHLIB") == 0)
+    else if(strstr(type, "PT_SHLIB") != NULL)
         return PT_SHLIB;
-    else if(strcmp(type, "PT_PHDR") == 0)
+    else if(strstr(type, "PT_PHDR") != NULL)
         return PT_PHDR;
-    else if(strcmp(type, "PT_GNU_STACK") == 0)
+    else if(strstr(type, "PT_GNU_STACK") != NULL)
         return PT_GNU_STACK;
-    else if(strcmp(type, "PT_TLS") == 0)
+    else if(strstr(type, "PT_TLS") != NULL)
         return PT_TLS;
-    else if(strcmp(type, "PT_NUM") == 0)
+    else if(strstr(type, "PT_NUM") != NULL)
         return PT_NUM;
-    else if(strcmp(type, "PT_GNU_EH_FRAME") == 0)
+    else if(strstr(type, "PT_GNU_EH_FRAME") != NULL)
         return PT_GNU_EH_FRAME;
-    else if(strcmp(type, "PT_GNU_RELRO") == 0)
+    else if(strstr(type, "PT_GNU_RELRO") != NULL)
         return PT_GNU_RELRO;
     else
     {
@@ -237,7 +315,7 @@ uint32_t readPType(char *type)
     }
 }
 
-uint32_t readPFlags(char *flags)
+uint32_t parsePFlags(char *flags)
 {
     uint32_t ret = 0;
     if(strchr(flags, 'R') != NULL)
@@ -249,53 +327,53 @@ uint32_t readPFlags(char *flags)
     return ret;
 }
 
-uint32_t readSType(char *type)
+uint32_t parseSType(char *type)
 {
-    if(strcmp(type, "SHT_NULL") == 0)
+    if(strstr(type, "SHT_NULL") != NULL)
         return SHT_NULL;
-    else if(strcmp(type, "SHT_PROGBITS") == 0)
+    else if(strstr(type, "SHT_PROGBITS") != NULL)
         return SHT_PROGBITS;
-    else if(strcmp(type, "SHT_SYMTAB") == 0)
+    else if(strstr(type, "SHT_SYMTAB") != NULL)
         return SHT_SYMTAB;
-    else if(strcmp(type, "SHT_STRTAB") == 0)
+    else if(strstr(type, "SHT_STRTAB") != NULL)
         return SHT_STRTAB;
-    else if(strcmp(type, "SHT_RELA") == 0)
+    else if(strstr(type, "SHT_RELA") != NULL)
         return SHT_RELA;
-    else if(strcmp(type, "SHT_HASH") == 0)
+    else if(strstr(type, "SHT_HASH") != NULL)
         return SHT_HASH;
-    else if(strcmp(type, "SHT_DYNAMIC") == 0)
+    else if(strstr(type, "SHT_DYNAMIC") != NULL)
         return SHT_DYNAMIC;
-    else if(strcmp(type, "SHT_NOTE") == 0)
+    else if(strstr(type, "SHT_NOTE") != NULL)
         return SHT_NOTE;
-    else if(strcmp(type, "SHT_NOBITS") == 0)
+    else if(strstr(type, "SHT_NOBITS") != NULL)
         return SHT_NOBITS;
-    else if(strcmp(type, "SHT_REL") == 0)
+    else if(strstr(type, "SHT_REL") != NULL)
         return SHT_REL;
-    else if(strcmp(type, "SHT_SHLIB") == 0)
+    else if(strstr(type, "SHT_SHLIB") != NULL)
         return SHT_SHLIB;
-    else if(strcmp(type, "SHT_DYNSYM") == 0)
+    else if(strstr(type, "SHT_DYNSYM") != NULL)
         return SHT_DYNSYM;
-    else if(strcmp(type, "SHT_INIT_ARRAY") == 0)
+    else if(strstr(type, "SHT_INIT_ARRAY") != NULL)
         return SHT_INIT_ARRAY;
-    else if(strcmp(type, "SHT_FINI_ARRAY") == 0)
+    else if(strstr(type, "SHT_FINI_ARRAY") != NULL)
         return SHT_FINI_ARRAY;
-    else if(strcmp(type, "SHT_PREINIT_ARRAY") == 0)
+    else if(strstr(type, "SHT_PREINIT_ARRAY") != NULL)
         return SHT_PREINIT_ARRAY;
-    else if(strcmp(type, "SHT_GROUP") == 0)
+    else if(strstr(type, "SHT_GROUP") != NULL)
         return SHT_GROUP;
-    else if(strcmp(type, "SHT_SYMTAB_SHNDX") == 0)
+    else if(strstr(type, "SHT_SYMTAB_SHNDX") != NULL)
         return SHT_SYMTAB_SHNDX;
-    else if(strcmp(type, "SHT_GNU_ATTRIBUTES") == 0)
+    else if(strstr(type, "SHT_GNU_ATTRIBUTES") != NULL)
         return SHT_GNU_ATTRIBUTES;
-    else if(strcmp(type, "SHT_GNU_HASH") == 0)
+    else if(strstr(type, "SHT_GNU_HASH") != NULL)
         return SHT_GNU_HASH;
-    else if(strcmp(type, "SHT_GNU_LIBLIST") == 0)
+    else if(strstr(type, "SHT_GNU_LIBLIST") != NULL)
         return SHT_GNU_LIBLIST;
-    else if(strcmp(type, "SHT_GNU_verdef") == 0)
+    else if(strstr(type, "SHT_GNU_verdef") != NULL)
         return SHT_GNU_verdef;
-    else if(strcmp(type, "SHT_GNU_verneed") == 0)
+    else if(strstr(type, "SHT_GNU_verneed") != NULL)
         return SHT_GNU_verneed;
-    else if(strcmp(type, "SHT_GNU_versym") == 0)
+    else if(strstr(type, "SHT_GNU_versym") != NULL)
         return SHT_GNU_versym;
     else
     {
@@ -304,7 +382,7 @@ uint32_t readSType(char *type)
     }
 }
 
-uint32_t readSFlags(char *flags)
+uint32_t parseSFlags(char *flags)
 {
     uint32_t ret = 0;
     if(strchr(flags, 'A') != NULL)
@@ -317,3 +395,4 @@ uint32_t readSFlags(char *flags)
         ret |= SHF_MASKPROC;
     return ret;
 }
+
