@@ -1,2 +1,3 @@
 elfcc
-dump/
+test/
+*.o
