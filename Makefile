@@ -23,6 +23,8 @@ test:
 	cp $(TARGET) test/$(TARGET)
 	./$(TARGET) -d test/$(TARGET) -o test/$(TARGET)
 	./$(TARGET) -c test/$(TARGET).elfs -o test/$(TARGET).new
+	readelf -a test/$(TARGET) > test/$(TARGET).re
+	readelf -a test/$(TARGET).new > test/$(TARGET).new.re
 	xxd test/$(TARGET) > test/$(TARGET).hex
 	xxd test/$(TARGET).new > test/$(TARGET).new.hex
 	diff test/$(TARGET) test/$(TARGET).new

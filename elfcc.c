@@ -187,7 +187,10 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
             printf("%s : Align = %lld - Current offset = %lld - Shift = %lld\n", findKeyValue(cur_sh->kvs, "Name"), shdr[i].sh_addralign, offset, shdr[i].sh_addralign - (offset % shdr[i].sh_addralign));
             offset += shdr[i].sh_addralign - (offset % shdr[i].sh_addralign);
         }
-        shdr[i].sh_offset = offset;
+        if(shdr[i].sh_type == SHT_NULL)
+            shdr[i].sh_offset = 0;
+        else
+            shdr[i].sh_offset = offset;
         offset += pre_elf->section_size[i];
         cur_sh = cur_sh->next;
     }
