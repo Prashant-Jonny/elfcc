@@ -1,4 +1,3 @@
-- Merge and String section flags not implemented
 - Although section .bss has no size in the ELF, it should have a memory size of 8 bytes
 - PHDR program header should start at offset 40 and not 240
 - Overflow in PHDR header size and memsize

@@ -1,3 +1,4 @@
 elfcc
 test/
 *.o
+.*

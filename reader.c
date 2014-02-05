@@ -392,7 +392,9 @@ uint32_t parseSFlags(char *flags)
     if(strchr(flags, 'W') != NULL)
         ret |= SHF_WRITE;
     if(strchr(flags, 'M') != NULL)
-        ret |= SHF_MASKPROC;
+        ret |= SHF_MERGE;
+    if(strchr(flags, 'S') != NULL)
+        ret |= SHF_STRINGS;
     return ret;
 }
 

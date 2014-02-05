@@ -403,7 +403,9 @@ void writeSFlags(FILE *out, uint32_t flags)
         fprintf(out, "W");
     if(flags & SHF_EXECINSTR)
         fprintf(out, "E");
-    if(flags & SHF_MASKPROC)
+    if(flags & SHF_MERGE)
         fprintf(out, "M");
+    if(flags & SHF_STRINGS)
+        fprintf(out, "S");
     fprintf(out, "\n");
 }
