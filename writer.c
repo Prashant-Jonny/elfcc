@@ -285,6 +285,7 @@ void writeShdr64(FILE *out, Elf64_Shdr *shdr, uint32_t scount, char *string_sect
         fprintf(out, "Address: %llx\n", shdr[i].sh_addr);
         fprintf(out, "Link: %x\n", shdr[i].sh_link);
         fprintf(out, "Info: %x\n", shdr[i].sh_info);
+        fprintf(out, "Size: %llx\n", shdr[i].sh_size);
         fprintf(out, "Align: %llx\n", shdr[i].sh_addralign);
         fprintf(out, "Entry size: %llx\n", shdr[i].sh_entsize);
         fprintf(out, "\n");
@@ -309,6 +310,7 @@ void writeShdr32(FILE *out, Elf32_Shdr *shdr, uint32_t scount, char *string_sect
         fprintf(out, "Address: %x\n", shdr[i].sh_addr);
         fprintf(out, "Link: %x\n", shdr[i].sh_link);
         fprintf(out, "Info: %x\n", shdr[i].sh_info);
+        fprintf(out, "Size: %x\n", shdr[i].sh_size);
         fprintf(out, "Align: %x\n", shdr[i].sh_addralign);
         fprintf(out, "Entry size: %x\n", shdr[i].sh_entsize);
         fprintf(out, "\n");

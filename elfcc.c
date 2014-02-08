@@ -177,7 +177,7 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
         shdr[i].sh_type = parseSType(findKeyValue(cur_sh->kvs, "Type"));
         shdr[i].sh_flags = parseSFlags(findKeyValue(cur_sh->kvs, "Flags"));
         shdr[i].sh_addr = strtol(findKeyValue(cur_sh->kvs, "Address"), NULL, 16);
-        shdr[i].sh_size = pre_elf->section_size[i];
+        shdr[i].sh_size = strtol(findKeyValue(cur_sh->kvs, "Size"), NULL, 16);
         shdr[i].sh_link = strtol(findKeyValue(cur_sh->kvs, "Link"), NULL, 16);
         shdr[i].sh_info = strtol(findKeyValue(cur_sh->kvs, "Info"), NULL, 16); 
         shdr[i].sh_addralign = strtol(findKeyValue(cur_sh->kvs, "Align"), NULL, 16); 
