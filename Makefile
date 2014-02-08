@@ -12,19 +12,32 @@ $(TARGET): $(OBJECTS)
 .c.o:
 	$(CC) $(CFLAGS) -c $< -o $@
 
-.PHONY: test clean
+.PHONY: test test_elfcc test_ls clean
 
 clean:
 	rm *.o $(TARGET)
 
-test:
+test: test_elfcc test_ls
+
+test_elfcc:
 	rm -rf test
-	mkdir test
-	cp $(TARGET) test/$(TARGET)
-	./$(TARGET) -d test/$(TARGET) test/$(TARGET)
-	./$(TARGET) -c test/$(TARGET).elfs test/$(TARGET).new
-	readelf -a test/$(TARGET) > test/$(TARGET).re
-	readelf -a test/$(TARGET).new > test/$(TARGET).new.re
-	xxd test/$(TARGET) > test/$(TARGET).hex
-	xxd test/$(TARGET).new > test/$(TARGET).new.hex
-	diff test/$(TARGET) test/$(TARGET).new
+	mkdir -p test/$(TARGET)
+	cp $(TARGET) test/$(TARGET)/$(TARGET)
+	./$(TARGET) -d test/$(TARGET)/$(TARGET) test/$(TARGET)/$(TARGET)
+	./$(TARGET) -c test/$(TARGET)/$(TARGET).elfs test/$(TARGET)/$(TARGET).new
+	readelf -a test/$(TARGET)/$(TARGET) > test/$(TARGET)/$(TARGET).re
+	readelf -a test/$(TARGET)/$(TARGET).new > test/$(TARGET)/$(TARGET).new.re
+	xxd test/$(TARGET)/$(TARGET) > test/$(TARGET)/$(TARGET).hex
+	xxd test/$(TARGET)/$(TARGET).new > test/$(TARGET)/$(TARGET).new.hex
+	diff test/$(TARGET)/$(TARGET) test/$(TARGET)/$(TARGET).new
+
+test_ls:
+	mkdir -p test/ls
+	cp /bin/ls test/ls/ls
+	./$(TARGET) -d test/ls/ls test/ls/ls
+	./$(TARGET) -c test/ls/ls.elfs test/ls/ls.new
+	readelf -a test/ls/ls > test/ls/ls.re
+	readelf -a test/ls/ls > test/ls/ls.new.re
+	xxd test/ls/ls > test/ls/ls.hex
+	xxd test/ls/ls.new > test/ls/ls.new.hex
+	diff test/ls/ls test/ls/ls.new
