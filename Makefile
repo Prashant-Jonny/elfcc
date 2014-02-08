@@ -21,8 +21,8 @@ test:
 	rm -rf test
 	mkdir test
 	cp $(TARGET) test/$(TARGET)
-	./$(TARGET) -d test/$(TARGET) -o test/$(TARGET)
-	./$(TARGET) -c test/$(TARGET).elfs -o test/$(TARGET).new
+	./$(TARGET) -d test/$(TARGET) test/$(TARGET)
+	./$(TARGET) -c test/$(TARGET).elfs test/$(TARGET).new
 	readelf -a test/$(TARGET) > test/$(TARGET).re
 	readelf -a test/$(TARGET).new > test/$(TARGET).new.re
 	xxd test/$(TARGET) > test/$(TARGET).hex

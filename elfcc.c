@@ -25,11 +25,9 @@ int main(int argc, char** argv)
         {
             param.action = 4;
         }
-        else if(strcmp(argv[i], "-o") == 0)
+        else if(i == argc - 1)
         {
-            i++;
-            if(i<argc)
-                param.out_file = argv[i];
+            param.out_file = argv[i];
         }
     }
 
@@ -39,12 +37,6 @@ int main(int argc, char** argv)
         printf("Please specify an input file.\n");
     }
 
-    if(param.action != 4 && param.out_file == NULL)
-    {
-        param.action = 0;
-        printf("Please specify an output file.\n");
-    }
-    
     switch(param.action)
     {
         case 1:
@@ -71,8 +63,8 @@ void usage()
 {
     version();
     printf("\n");
-    printf("elfcc -d file -o output_file: decompile an elf\n");
-    printf("elfcc -c file -o output_file: compile into an elf\n");
+    printf("elfcc -d file output_file: decompile an elf\n");
+    printf("elfcc -c file output_file: compile into an elf\n");
 }
 
 
