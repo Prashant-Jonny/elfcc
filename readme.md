@@ -13,7 +13,7 @@ more about this format and its undocumented parts.
 
 To decompile an ELF into an elfs file and section dumps:
 
-'''elfcc -d /bin/ls ./ls'''
+    elfcc -d /bin/ls ./ls
 
 An output base path can be provided as the last argument. If not, the ELF file 
 is used as a base path.
@@ -21,7 +21,7 @@ is used as a base path.
 
 To compile an elfs and seciton dumps into an ELF:
 
-'''elfcc -c ./ls /bin/ls'''
+    elfcc -c ./ls /bin/ls
 
 An output ELF file can be provided as the last argument. If not, the base path 
 is used as the ELF file name.
