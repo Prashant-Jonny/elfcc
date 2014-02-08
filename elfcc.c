@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
 void version()
 {
-    printf("ELFCC 0.2\nCopyright Charles Hubain <haxelion@gmail.com> @haxelion\nReleased under GPLv3\n");
+    printf("ELFCC 0.3\nCopyright Charles Hubain <haxelion@gmail.com> @haxelion\nReleased under GPLv3\n");
 }
 
 void usage()
