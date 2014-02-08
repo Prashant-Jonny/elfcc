@@ -37,6 +37,9 @@ int main(int argc, char** argv)
         printf("Please specify an input file.\n");
     }
 
+    if(param.action != 4 && param.out_file == NULL)
+        param.out_file = param.in_file; // In place operations
+
     switch(param.action)
     {
         case 1:
@@ -71,7 +74,7 @@ void usage()
 void compile(struct Parameters *p)
 {
     char buffer[1024];
-    char *elfs_base_path, *machine;
+    char *elfs_path, *machine;
     uint32_t i;
     FILE *section_file;
     struct Ph *cur_ph;
@@ -81,16 +84,16 @@ void compile(struct Parameters *p)
 
     elfs = (struct Elfs*)malloc(sizeof(struct Elfs));
     pre_elf = (struct PreElf*)malloc(sizeof(struct PreElf));
-    elfs_base_path = (char*) malloc(strlen(p->in_file)+1);
-    strcpy(elfs_base_path, p->in_file);
-    *strrchr(elfs_base_path, '.') = '\0';
-    p->elfs = fopen(p->in_file, "r");
+    elfs_path = (char*) malloc(strlen(p->in_file)+6);
+    strcpy(elfs_path, p->in_file);
+    strcat(elfs_path, ".elfs");
+    p->elfs = fopen(elfs_path, "r");
     if(p->elfs == NULL)
     {
         printf("Can't open Elfs input file.\n");
         exit(101);
     }
-    p->elf = fopen(p->out_file, "w");
+    p->elf = fopen(p->out_file, "wb");
     if(p->elf == NULL)
     {
         printf("Can't create output elf file.\n");
@@ -117,7 +120,7 @@ void compile(struct Parameters *p)
     pre_elf->section_total_size = 0;
     for(i = 0; i< pre_elf->shdr_number; i++)
     {
-        snprintf(buffer, 1024, "%s.%x", elfs_base_path, i);
+        snprintf(buffer, 1024, "%s.%x", p->in_file, i);
         section_file = fopen(buffer, "r");
         fseek(section_file, 0, SEEK_END);
         pre_elf->section_size[i] = ftell(section_file);

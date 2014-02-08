@@ -23,8 +23,8 @@ test_elfcc:
 	rm -rf test
 	mkdir -p test/$(TARGET)
 	cp $(TARGET) test/$(TARGET)/$(TARGET)
-	./$(TARGET) -d test/$(TARGET)/$(TARGET) test/$(TARGET)/$(TARGET)
-	./$(TARGET) -c test/$(TARGET)/$(TARGET).elfs test/$(TARGET)/$(TARGET).new
+	./$(TARGET) -d test/$(TARGET)/$(TARGET)
+	./$(TARGET) -c test/$(TARGET)/$(TARGET) test/$(TARGET)/$(TARGET).new
 	readelf -a test/$(TARGET)/$(TARGET) > test/$(TARGET)/$(TARGET).re
 	readelf -a test/$(TARGET)/$(TARGET).new > test/$(TARGET)/$(TARGET).new.re
 	xxd test/$(TARGET)/$(TARGET) > test/$(TARGET)/$(TARGET).hex
@@ -34,8 +34,8 @@ test_elfcc:
 test_ls:
 	mkdir -p test/ls
 	cp /bin/ls test/ls/ls
-	./$(TARGET) -d test/ls/ls test/ls/ls
-	./$(TARGET) -c test/ls/ls.elfs test/ls/ls.new
+	./$(TARGET) -d test/ls/ls
+	./$(TARGET) -c test/ls/ls test/ls/ls.new
 	readelf -a test/ls/ls > test/ls/ls.re
 	readelf -a test/ls/ls > test/ls/ls.new.re
 	xxd test/ls/ls > test/ls/ls.hex
