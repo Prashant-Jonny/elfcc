@@ -1,4 +1,0 @@
-- PHDR program header should start at offset 40 and not 240
-- Overflow in PHDR header size and memsize
-- LOAD should start at offset 0 and not offset 200
-- Section headers should be placed before .symtab and .strtab
