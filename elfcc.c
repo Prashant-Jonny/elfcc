@@ -176,7 +176,6 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
         shdr[i].sh_entsize = strtol(findKeyValue(cur_sh->kvs, "Entry size"), NULL, 16); 
         if(shdr[i].sh_addralign != 0 && offset % shdr[i].sh_addralign != 0)
         {
-            printf("%s : Align = %lld - Current offset = %lld - Shift = %lld\n", findKeyValue(cur_sh->kvs, "Name"), shdr[i].sh_addralign, offset, shdr[i].sh_addralign - (offset % shdr[i].sh_addralign));
             offset += shdr[i].sh_addralign - (offset % shdr[i].sh_addralign);
         }
         if(shdr[i].sh_type == SHT_NULL)
@@ -210,12 +209,10 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
         value = findKeyValue(cur_ph->kvs, "Start");
         si = strtol(strstr(value, "Section")+7, NULL, 16);
         offset = strtol(strchr(value, '+')+1, NULL, 16);
-        printf("%x %x\n", si, offset);
         phdr[i].p_offset = shdr[si].sh_offset+offset;
         value = findKeyValue(cur_ph->kvs, "End");
         si = strtol(strstr(value, "Section")+7, NULL, 16);
         offset = strtol(strchr(value, '+')+1, NULL, 16);
-        printf("%x %x\n", si, offset);
         phdr[i].p_filesz = shdr[si].sh_offset+offset-phdr[i].p_offset;
         phdr[i].p_vaddr = strtol(findKeyValue(cur_ph->kvs, "Virtual address"), NULL, 16);
         phdr[i].p_paddr = strtol(findKeyValue(cur_ph->kvs, "Physical address"), NULL, 16);
