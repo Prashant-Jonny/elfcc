@@ -37,7 +37,7 @@ test_ls:
 	./$(TARGET) -d test/ls/ls
 	./$(TARGET) -c test/ls/ls test/ls/ls.new
 	readelf -a test/ls/ls > test/ls/ls.re
-	readelf -a test/ls/ls > test/ls/ls.new.re
+	readelf -a test/ls/ls.new > test/ls/ls.new.re
 	xxd test/ls/ls > test/ls/ls.hex
 	xxd test/ls/ls.new > test/ls/ls.new.hex
 	diff test/ls/ls test/ls/ls.new
