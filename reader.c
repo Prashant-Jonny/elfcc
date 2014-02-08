@@ -78,6 +78,8 @@ void scanLine(char *line, char **key, char **value)
 {
     int i = 0, state = 0;
     int ks, ke, vs, ve;
+    *key = NULL;
+    *value = NULL;
     while(line[i] == ' ' || line[i] == '\t')
         i++;
     ks = i;
@@ -102,7 +104,7 @@ void scanLine(char *line, char **key, char **value)
     *value = (char*) malloc(ve-vs+1);
     for(i = vs; i < ve; i++)
         (*value)[i-vs] = line[i];
-    (*value)[i-ks] = '\0';
+    (*value)[i-vs] = '\0';
 }
 
 char* findKeyValue(struct Kv* kvs, char *key)
@@ -125,6 +127,11 @@ uint64_t findString(void *section, uint64_t size, char *string)
     int matching = 0;
     for(i = 0; i<size; i++)
     {
+       if(((char*)section)[i] == string[0])
+        {
+            matching = 1;
+            index = i;
+        }
         if(matching)
         {
             if(((char*)section)[i] == '\0' && string[i-index] == '\0')
@@ -132,11 +139,7 @@ uint64_t findString(void *section, uint64_t size, char *string)
             else if(((char*)section)[i] != string[i-index])
                 matching = 0;
         }
-        else if(((char*)section)[i] == string[0])
-        {
-            matching = 1;
-            index = i;
-        }
+        
     }
     if(index == -1)
     {
@@ -158,7 +161,7 @@ void freeElfsStruct(struct Elfs *e)
     struct Sh *cur_sh, *next_sh;
 
     next_kv = e->eh;
-    while(next_kv != NULL)
+    while(next_kv->next != NULL)
     {
         cur_kv = next_kv;
         next_kv = cur_kv->next;
@@ -168,12 +171,12 @@ void freeElfsStruct(struct Elfs *e)
     }
     
     next_ph = e->phs;
-    while(next_ph != NULL)
+    while(next_ph->next != NULL)
     {
         cur_ph = next_ph;
         next_ph = cur_ph->next;
         next_kv = cur_ph->kvs;
-        while(next_kv != NULL)
+        while(next_kv->next != NULL)
         {
             cur_kv = next_kv;
             next_kv = cur_kv->next;
@@ -185,12 +188,12 @@ void freeElfsStruct(struct Elfs *e)
     }
     
     next_sh = e->shs;
-    while(next_sh != NULL)
+    while(next_sh->next != NULL)
     {
         cur_sh = next_sh;
         next_sh = cur_sh->next;
         next_kv = cur_sh->kvs;
-        while(next_kv != NULL)
+        while(next_kv->next != NULL)
         {
             cur_kv = next_kv;
             next_kv = cur_kv->next;
