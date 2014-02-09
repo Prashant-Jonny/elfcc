@@ -146,19 +146,21 @@ uint64_t findString(void *section, uint64_t size, char *string)
     int matching = 0;
     for(i = 0; i<size; i++)
     {
-       if(((char*)section)[i] == string[0])
-        {
-            matching = 1;
-            index = i;
-        }
         if(matching)
         {
             if(((char*)section)[i] == '\0' && string[i-index] == '\0')
                 break;
             else if(((char*)section)[i] != string[i-index])
+            {
                 matching = 0;
+                index = -1;
+            }
         }
-        
+        else if(((char*)section)[i] == string[0])
+        {
+            matching = 1;
+            index = i;
+        }  
     }
     if(index == -1)
     {
