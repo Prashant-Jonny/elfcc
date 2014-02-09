@@ -29,7 +29,6 @@ test_elfcc:
 	readelf -a test/$(TARGET)/$(TARGET).new > test/$(TARGET)/$(TARGET).new.re
 	xxd test/$(TARGET)/$(TARGET) > test/$(TARGET)/$(TARGET).hex
 	xxd test/$(TARGET)/$(TARGET).new > test/$(TARGET)/$(TARGET).new.hex
-	diff test/$(TARGET)/$(TARGET) test/$(TARGET)/$(TARGET).new
 
 test_ls:
 	mkdir -p test/ls
@@ -40,4 +39,3 @@ test_ls:
 	readelf -a test/ls/ls.new > test/ls/ls.new.re
 	xxd test/ls/ls > test/ls/ls.hex
 	xxd test/ls/ls.new > test/ls/ls.new.hex
-	diff test/ls/ls test/ls/ls.new
