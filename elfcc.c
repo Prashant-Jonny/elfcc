@@ -165,7 +165,97 @@ void compile(struct Parameters *p)
 
 void compile32(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
 {
-    
+    Elf32_Ehdr *ehdr;
+    Elf32_Phdr *phdr;
+    Elf32_Shdr *shdr;
+    struct Ph *cur_ph;
+    struct Sh *cur_sh;
+    uint32_t i, si;
+    char *value;
+    uint32_t offset;
+    ehdr = (Elf32_Ehdr*)malloc(sizeof(Elf32_Ehdr));
+    phdr = (Elf32_Phdr*)calloc(pre_elf->phdr_number, sizeof(Elf32_Phdr));
+    shdr = (Elf32_Shdr*)calloc(pre_elf->shdr_number, sizeof(Elf32_Shdr));
+
+    ehdr->e_shstrndx = strtol(findKeyValue(elfs->eh, "Section header string index"), NULL, 16);
+    cur_sh = elfs->shs;
+    offset = 0;
+    for(i = 0; i<pre_elf->shdr_number; i++)
+    {
+        shdr[i].sh_name = findString(pre_elf->section_data[ehdr->e_shstrndx], pre_elf->section_size[ehdr->e_shstrndx], findKeyValue(cur_sh->kvs, "Name"));
+        shdr[i].sh_type = parseSType(findKeyValue(cur_sh->kvs, "Type"));
+        shdr[i].sh_flags = parseSFlags(findKeyValue(cur_sh->kvs, "Flags"));
+        shdr[i].sh_addr = strtol(findKeyValue(cur_sh->kvs, "Address"), NULL, 16);
+        shdr[i].sh_size = strtol(findKeyValue(cur_sh->kvs, "Size"), NULL, 16);
+        shdr[i].sh_link = strtol(findKeyValue(cur_sh->kvs, "Link"), NULL, 16);
+        shdr[i].sh_info = strtol(findKeyValue(cur_sh->kvs, "Info"), NULL, 16); 
+        shdr[i].sh_addralign = strtol(findKeyValue(cur_sh->kvs, "Align"), NULL, 16); 
+        shdr[i].sh_entsize = strtol(findKeyValue(cur_sh->kvs, "Entry size"), NULL, 16); 
+        if(shdr[i].sh_addralign != 0 && offset % shdr[i].sh_addralign != 0)
+        {
+            offset += shdr[i].sh_addralign - (offset % shdr[i].sh_addralign);
+        }
+        if(shdr[i].sh_type == SHT_NULL)
+            shdr[i].sh_offset = 0;
+        else
+            shdr[i].sh_offset = offset;
+        offset += pre_elf->section_size[i];
+        cur_sh = cur_sh->next;
+    }
+
+    parseIdent(findKeyValue(elfs->eh, "Magic"), ehdr->e_ident);
+    ehdr->e_type = parseEType(findKeyValue(elfs->eh, "Type"));
+    ehdr->e_machine = parseMachine(findKeyValue(elfs->eh, "Machine"));
+    ehdr->e_version = parseVersion(findKeyValue(elfs->eh, "Version"));
+    ehdr->e_entry = strtol(findKeyValue(elfs->eh, "Entry point"), NULL, 16);
+    value = findKeyValue(elfs->eh, "Program headers offset");
+    si = strtol(strstr(value, "Section")+7, NULL, 16);
+    offset = strtol(strchr(value, '+')+1, NULL, 16);
+    ehdr->e_phoff = shdr[si].sh_offset+offset;
+    value = findKeyValue(elfs->eh, "Section headers offset");
+    si = strtol(strstr(value, "Section")+7, NULL, 16);
+    offset = strtol(strchr(value, '+')+1, NULL, 16);
+    ehdr->e_shoff = shdr[si].sh_offset+offset;
+    ehdr->e_flags = 0;
+    ehdr->e_ehsize = sizeof(Elf32_Ehdr);
+    ehdr->e_phentsize = sizeof(Elf32_Phdr);
+    ehdr->e_phnum = pre_elf->phdr_number;
+    ehdr->e_shentsize = sizeof(Elf32_Shdr);
+    ehdr->e_shnum = pre_elf->shdr_number;
+
+    cur_ph = elfs->phs;
+    for(i = 0; i<pre_elf->phdr_number; i++)
+    {
+        phdr[i].p_type = parsePType(findKeyValue(cur_ph->kvs, "Type"));
+        phdr[i].p_flags = parsePFlags(findKeyValue(cur_ph->kvs, "Flags"));
+        value = findKeyValue(cur_ph->kvs, "Start");
+        si = strtol(strstr(value, "Section")+7, NULL, 16);
+        offset = strtol(strchr(value, '+')+1, NULL, 16);
+        phdr[i].p_offset = shdr[si].sh_offset+offset;
+        value = findKeyValue(cur_ph->kvs, "End");
+        si = strtol(strstr(value, "Section")+7, NULL, 16);
+        offset = strtol(strchr(value, '+')+1, NULL, 16);
+        phdr[i].p_filesz = shdr[si].sh_offset+offset-phdr[i].p_offset;
+        phdr[i].p_vaddr = strtol(findKeyValue(cur_ph->kvs, "Virtual address"), NULL, 16);
+        phdr[i].p_paddr = strtol(findKeyValue(cur_ph->kvs, "Physical address"), NULL, 16);
+        phdr[i].p_align = strtol(findKeyValue(cur_ph->kvs, "Align"), NULL, 16);
+        phdr[i].p_memsz = phdr[i].p_filesz + strtol(findKeyValue(cur_ph->kvs, "Memory size delta"), NULL, 16);
+        cur_ph = cur_ph->next;
+    }
+
+    for(i = 0; i<pre_elf->shdr_number; i++)
+    {
+        fseek(out, shdr[i].sh_offset, SEEK_SET);
+        fwrite(pre_elf->section_data[i], pre_elf->section_size[i], 1, out);
+    }
+    fseek(out, 0, SEEK_SET);
+    fwrite(ehdr, sizeof(Elf64_Ehdr), 1, out);
+    fseek(out, ehdr->e_phoff, SEEK_SET);
+    for(i = 0; i<pre_elf->phdr_number; i++)
+        fwrite(&(phdr[i]), sizeof(Elf32_Phdr), 1, out);
+    fseek(out, ehdr->e_shoff, SEEK_SET);
+    for(i = 0; i<pre_elf->shdr_number; i++)
+        fwrite(&(shdr[i]), sizeof(Elf32_Shdr), 1, out);
 }
 
 void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
