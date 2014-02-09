@@ -22,9 +22,9 @@ Copyright 2014 Charles Hubain <haxelion@gmail.com>
 #include <string.h>
 #include <elf.h>
 
-void writeEhdr64(FILE *out, Elf64_Ehdr *ehdr);
+void writeEhdr64(FILE *out, Elf64_Ehdr *ehdr, Elf64_Shdr *shdr, uint32_t scount);
 
-void writeEhdr32(FILE *out, Elf32_Ehdr *ehdr);
+void writeEhdr32(FILE *out, Elf32_Ehdr *ehdr, Elf32_Shdr *shdr, uint32_t scount);
 
 void writeMagic(FILE *out, char *ident);
 

@@ -19,8 +19,10 @@ Copyright 2014 Charles Hubain <haxelion@gmail.com>
 
 #include "writer.h"
 
-void writeEhdr64(FILE *out, Elf64_Ehdr *ehdr)
+void writeEhdr64(FILE *out, Elf64_Ehdr *ehdr, Elf64_Shdr *shdr, uint32_t scount)
 {
+    uint32_t section, i;
+    uint64_t offset;
     fprintf(out, "[ELF HEADER]\n");
     writeMagic(out, ehdr->e_ident);
     writeEType(out, ehdr->e_type);
@@ -28,11 +30,33 @@ void writeEhdr64(FILE *out, Elf64_Ehdr *ehdr)
     writeVersion(out, ehdr->e_version);
     fprintf(out, "Entry point: %llx\n", ehdr->e_entry);
     writeShstrndx(out, ehdr->e_shstrndx);
+    offset = -1;
+    for(i = 0; i<scount; i++)
+    {
+        if(shdr[i].sh_offset <= ehdr->e_phoff && ehdr->e_phoff - shdr[i].sh_offset < offset)
+        {
+            section = i;
+            offset = ehdr->e_phoff - shdr[i].sh_offset;
+        }
+    }
+    fprintf(out, "Program headers offset: Section%x+%llx\n", section, offset);
+    offset = -1;
+    for(i = 0; i<scount; i++)
+    {
+        if(shdr[i].sh_offset <= ehdr->e_shoff && ehdr->e_shoff - shdr[i].sh_offset < offset)
+        {
+            section = i;
+            offset = ehdr->e_shoff - shdr[i].sh_offset;
+        }
+    }
+    fprintf(out, "Section headers offset: Section%x+%llx\n", section, offset);
     fprintf(out, "\n");
 }
 
-void writeEhdr32(FILE *out, Elf32_Ehdr *ehdr)
+void writeEhdr32(FILE *out, Elf32_Ehdr *ehdr, Elf32_Shdr *shdr, uint32_t scount)
 {
+    uint32_t section, i;
+    uint32_t offset;
     fprintf(out, "[ELF HEADER]\n");
     writeMagic(out, ehdr->e_ident);
     writeEType(out, ehdr->e_type);
@@ -40,6 +64,26 @@ void writeEhdr32(FILE *out, Elf32_Ehdr *ehdr)
     writeVersion(out, ehdr->e_version);
     fprintf(out, "Entry point: %x\n", ehdr->e_entry);
     writeShstrndx(out, ehdr->e_shstrndx);
+    offset = -1;
+    for(i = 0; i<scount; i++)
+    {
+        if(shdr[i].sh_offset <= ehdr->e_phoff && ehdr->e_phoff - shdr[i].sh_offset < offset)
+        {
+            section = i;
+            offset = ehdr->e_phoff - shdr[i].sh_offset;
+        }
+    }
+    fprintf(out, "Program headers offset: Section%x+%x\n", section, offset);
+    offset = -1;
+    for(i = 0; i<scount; i++)
+    {
+        if(shdr[i].sh_offset <= ehdr->e_shoff && ehdr->e_shoff - shdr[i].sh_offset < offset)
+        {
+            section = i;
+            offset = ehdr->e_shoff - shdr[i].sh_offset;
+        }
+    }
+    fprintf(out, "Section headers offset: Section%x+%x\n", section, offset);
     fprintf(out, "\n");
 }
 

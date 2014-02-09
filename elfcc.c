@@ -175,7 +175,7 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
     Elf64_Shdr *shdr;
     struct Ph *cur_ph;
     struct Sh *cur_sh;
-    uint32_t i;
+    uint32_t i, si;
     char *value;
     uint64_t offset;
     ehdr = (Elf64_Ehdr*)malloc(sizeof(Elf64_Ehdr));
@@ -184,7 +184,7 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
 
     ehdr->e_shstrndx = strtol(findKeyValue(elfs->eh, "Section header string index"), NULL, 16);
     cur_sh = elfs->shs;
-    offset = sizeof(Elf64_Ehdr) + pre_elf->phdr_number*sizeof(Elf64_Phdr);
+    offset = 0;
     for(i = 0; i<pre_elf->shdr_number; i++)
     {
         shdr[i].sh_name = findString(pre_elf->section_data[ehdr->e_shstrndx], pre_elf->section_size[ehdr->e_shstrndx], findKeyValue(cur_sh->kvs, "Name"));
@@ -213,8 +213,14 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
     ehdr->e_machine = parseMachine(findKeyValue(elfs->eh, "Machine"));
     ehdr->e_version = parseVersion(findKeyValue(elfs->eh, "Version"));
     ehdr->e_entry = strtol(findKeyValue(elfs->eh, "Entry point"), NULL, 16);
-    ehdr->e_phoff = sizeof(Elf64_Ehdr);
-    ehdr->e_shoff = offset;
+    value = findKeyValue(elfs->eh, "Program headers offset");
+    si = strtol(strstr(value, "Section")+7, NULL, 16);
+    offset = strtol(strchr(value, '+')+1, NULL, 16);
+    ehdr->e_phoff = shdr[si].sh_offset+offset;
+    value = findKeyValue(elfs->eh, "Section headers offset");
+    si = strtol(strstr(value, "Section")+7, NULL, 16);
+    offset = strtol(strchr(value, '+')+1, NULL, 16);
+    ehdr->e_shoff = shdr[si].sh_offset+offset;
     ehdr->e_flags = 0;
     ehdr->e_ehsize = sizeof(Elf64_Ehdr);
     ehdr->e_phentsize = sizeof(Elf64_Phdr);
@@ -225,7 +231,6 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
     cur_ph = elfs->phs;
     for(i = 0; i<pre_elf->phdr_number; i++)
     {
-        uint32_t si;
         phdr[i].p_type = parsePType(findKeyValue(cur_ph->kvs, "Type"));
         phdr[i].p_flags = parsePFlags(findKeyValue(cur_ph->kvs, "Flags"));
         value = findKeyValue(cur_ph->kvs, "Start");
@@ -243,14 +248,17 @@ void compile64(FILE *out, struct Elfs *elfs, struct PreElf *pre_elf)
         cur_ph = cur_ph->next;
     }
 
-    fwrite(ehdr, sizeof(Elf64_Ehdr), 1, out);
-    for(i = 0; i<pre_elf->phdr_number; i++)
-        fwrite(&(phdr[i]), sizeof(Elf64_Phdr), 1, out);
     for(i = 0; i<pre_elf->shdr_number; i++)
     {
         fseek(out, shdr[i].sh_offset, SEEK_SET);
         fwrite(pre_elf->section_data[i], pre_elf->section_size[i], 1, out);
     }
+    fseek(out, 0, SEEK_SET);
+    fwrite(ehdr, sizeof(Elf64_Ehdr), 1, out);
+    fseek(out, ehdr->e_phoff, SEEK_SET);
+    for(i = 0; i<pre_elf->phdr_number; i++)
+        fwrite(&(phdr[i]), sizeof(Elf64_Phdr), 1, out);
+    fseek(out, ehdr->e_shoff, SEEK_SET);
     for(i = 0; i<pre_elf->shdr_number; i++)
         fwrite(&(shdr[i]), sizeof(Elf64_Shdr), 1, out);
 }
@@ -356,9 +364,7 @@ void decompile32(struct Parameters *p)
     shdr[ehdr->e_shnum].sh_offset = ftell(p->elf);
     for(i = 0; i<ehdr->e_shnum; i++)
     {
-        unsigned int size = shdr[i].sh_size;
-        if(size > (shdr[i+1].sh_offset - shdr[i].sh_offset))
-            size = shdr[i+1].sh_offset - shdr[i].sh_offset;
+        unsigned int size = shdr[i+1].sh_offset - shdr[i].sh_offset;
         sections[i] = (void*) malloc(size);
         fseek(p->elf, shdr[i].sh_offset, SEEK_SET);
         if(size != 0 && fread((void*) sections[i], size, 1, p->elf) == 0)
@@ -383,7 +389,7 @@ void decompile32(struct Parameters *p)
     else
         string_section_index = shdr[0].sh_link;
 
-    writeEhdr32(p->elfs, ehdr);
+    writeEhdr32(p->elfs, ehdr, shdr, ehdr->e_shnum);
     writePhdr32(p->elfs, phdr, shdr, ehdr->e_phnum, ehdr->e_shnum);
     writeShdr32(p->elfs, shdr, ehdr->e_shnum, (char*)sections[string_section_index], shdr[string_section_index].sh_size);
 }
@@ -435,9 +441,7 @@ void decompile64(struct Parameters *p)
     shdr[ehdr->e_shnum].sh_offset = ftell(p->elf);
     for(i = 0; i<ehdr->e_shnum; i++)
     {
-        unsigned long long size = shdr[i].sh_size;
-        if(size > (shdr[i+1].sh_offset - shdr[i].sh_offset))
-            size = shdr[i+1].sh_offset - shdr[i].sh_offset;
+        unsigned long long size = shdr[i+1].sh_offset - shdr[i].sh_offset;
         sections[i] = (void*) malloc(size);
         fseek(p->elf, shdr[i].sh_offset, SEEK_SET);
         if(size != 0 && fread((void*) sections[i], size, 1, p->elf) == 0)
@@ -462,7 +466,7 @@ void decompile64(struct Parameters *p)
     else
         string_section_index = shdr[0].sh_link;
 
-    writeEhdr64(p->elfs, ehdr);
+    writeEhdr64(p->elfs, ehdr, shdr, ehdr->e_shnum);
     writePhdr64(p->elfs, phdr, shdr, ehdr->e_phnum, ehdr->e_shnum);
     writeShdr64(p->elfs, shdr, ehdr->e_shnum, (char*)sections[string_section_index], shdr[string_section_index].sh_size);
 }
